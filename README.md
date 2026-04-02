@@ -17,7 +17,7 @@ The frontend is built on React 19 and Vite for a fast development experience and
 Before starting the development server, ensure hledger is installed and the API server is running on port 8080 (e.g., [`hledger-api`](https://github.com/wolfsblu/hledger-api) `--server --port 8080`).
 
 1. Install the project dependencies by running `npm install`.
-2. Generate the TypeScript types from your local API instance with `curl -s http://127.0.0.1:8080/openapi.json -o openapi.json` and `npx openapi-typescript openapi.json -o src/api/v1.d.ts`.
+2. Generate the TypeScript types from your local API instance with `npm run generate-types`.
 3. Launch the application using `npm run dev`. The dashboard will be available at `http://localhost:5173`.
 
 ## Available Commands
@@ -27,6 +27,7 @@ Before starting the development server, ensure hledger is installed and the API 
 | npm run dev | Starts the local development server |
 | npm run build | Compiles the application for production |
 | npm run preview | Previews the production build locally |
+| npm run generate-types | Fetches the OpenAPI schema and generates types |
 | npm run lint | Runs code quality checks with ESLint |
 | npm test | Executes the test suite with Vitest |
 
