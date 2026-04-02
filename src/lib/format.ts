@@ -23,7 +23,17 @@ export function formatAmount(amount: Amount): string {
 
 export function formatMixedAmount(amounts: Amount[]): string {
   if (amounts.length === 0) return "$0.00";
-  return amounts.map(formatAmount).join(", ");
+
+  // Merge entries that share the same commodity (hledger can return
+  // multiple entries for one commodity when cost bases differ).
+  const merged = new Map<string, number>();
+  for (const { commodity, quantity } of amounts) {
+    merged.set(commodity, (merged.get(commodity) ?? 0) + quantity);
+  }
+
+  return Array.from(merged, ([commodity, quantity]) =>
+    formatAmount({ commodity, quantity })
+  ).join(", ");
 }
 
 export function formatDate(dateStr: string): string {

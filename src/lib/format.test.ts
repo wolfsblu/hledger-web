@@ -36,6 +36,15 @@ describe("formatMixedAmount", () => {
   it("formats empty array", () => {
     expect(formatMixedAmount([])).toBe("$0.00");
   });
+
+  it("merges duplicate commodities", () => {
+    expect(
+      formatMixedAmount([
+        { commodity: "$", quantity: 500 },
+        { commodity: "$", quantity: 200 },
+      ])
+    ).toBe("$700.00");
+  });
 });
 
 describe("formatDate", () => {
