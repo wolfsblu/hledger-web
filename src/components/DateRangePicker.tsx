@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Calendar, ChevronDown } from "lucide-react";
 import { useDateRange } from "../context/DateRangeContext";
 import { getPresets } from "../lib/date-presets";
 
@@ -23,17 +24,16 @@ export default function DateRangePicker() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-750"
+        className="flex items-center gap-2 rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-surface-3)] hover:text-[var(--color-text-primary)]"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-          <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clipRule="evenodd" />
-        </svg>
-        {range.label}
+        <Calendar size={14} strokeWidth={1.8} />
+        <span className="font-body">{range.label}</span>
+        <ChevronDown size={14} strokeWidth={1.8} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <div className="animate-fade-up absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--color-surface-border)] bg-[var(--color-surface-2)] p-3 shadow-2xl shadow-black/40">
+          <div className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--color-text-tertiary)]">
             Presets
           </div>
           <div className="flex flex-col gap-0.5">
@@ -44,10 +44,10 @@ export default function DateRangePicker() {
                   setRange(preset);
                   setOpen(false);
                 }}
-                className={`rounded px-2 py-1 text-left text-sm ${
+                className={`rounded-lg px-3 py-1.5 text-left text-sm transition-colors ${
                   range.label === preset.label
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                    ? "bg-[var(--color-accent-glow)] text-[var(--color-accent)] shadow-[inset_0_0_0_1px_rgba(226,167,39,0.15)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text-primary)]"
                 }`}
               >
                 {preset.label}
@@ -55,8 +55,8 @@ export default function DateRangePicker() {
             ))}
           </div>
 
-          <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-700">
-            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <div className="mt-3 border-t border-[var(--color-surface-border)] pt-3">
+            <div className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--color-text-tertiary)]">
               Custom Range
             </div>
             <div className="flex gap-2">
@@ -64,21 +64,21 @@ export default function DateRangePicker() {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="w-full rounded border border-gray-200 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                className="w-full rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-3)] px-2 py-1.5 font-mono text-xs text-[var(--color-text-primary)] focus:border-[var(--color-accent-dim)] focus:outline-none"
               />
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="w-full rounded border border-gray-200 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                className="w-full rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-3)] px-2 py-1.5 font-mono text-xs text-[var(--color-text-primary)] focus:border-[var(--color-accent-dim)] focus:outline-none"
               />
             </div>
             <button
               onClick={() => {
-                setRange({ from: customFrom, to: customTo, label: `${customFrom} - ${customTo}` });
+                setRange({ from: customFrom, to: customTo, label: `${customFrom} — ${customTo}` });
                 setOpen(false);
               }}
-              className="mt-2 w-full rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+              className="mt-2 w-full rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-semibold text-[var(--color-surface-0)] transition-colors hover:bg-[var(--color-accent-dim)]"
             >
               Apply
             </button>

@@ -3,9 +3,13 @@ import DarkModeToggle from "./DarkModeToggle";
 
 export default function TopBar() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-3 border-b border-gray-200 bg-white/80 px-6 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
-      <DateRangePicker />
-      <DarkModeToggle />
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-0)]/90 px-8 backdrop-blur-xl">
+      <div />
+      <div className="flex items-center gap-3">
+        <DateRangePicker />
+        <div className="h-5 w-px bg-[var(--color-surface-border)]" />
+        <DarkModeToggle />
+      </div>
     </header>
   );
 }

@@ -22,11 +22,11 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <DateRangeProvider>
         <BrowserRouter>
-          <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+          <div className="min-h-screen bg-[var(--color-surface-0)] font-body text-[var(--color-text-primary)]">
             <Sidebar />
-            <div className="pl-56">
+            <div className="pl-60">
               <TopBar />
-              <main className="p-6">
+              <main className="p-8">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/accounts" element={<Accounts />} />
