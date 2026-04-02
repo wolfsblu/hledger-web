@@ -147,6 +147,7 @@ function IncomeVsExpenses({ data }: { data: any }) {
             tickLine={false}
           />
           <Tooltip
+            cursor={{ fill: "var(--color-accent-glow)" }}
             formatter={(v: number) => [`$${v.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, undefined]}
             contentStyle={{
               background: "var(--color-surface-2)",
