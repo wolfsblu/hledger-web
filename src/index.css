@@ -7,6 +7,43 @@
   --font-body: "Outfit", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
+  --color-chart-1: #e2a727;
+  --color-chart-2: #34d399;
+  --color-chart-3: #818cf8;
+  --color-chart-4: #fb7185;
+  --color-chart-5: #38bdf8;
+
+  --color-gain: #16a34a;
+  --color-gain-dim: rgba(22, 163, 74, 0.12);
+  --color-loss: #e11d48;
+  --color-loss-dim: rgba(225, 29, 72, 0.12);
+}
+
+/* ── Light theme (default) ── */
+:root {
+  --color-surface-0: #f8f7f4;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f0eee9;
+  --color-surface-3: #e4e1db;
+  --color-surface-border: #d5d1ca;
+  --color-surface-border-subtle: #e8e5df;
+
+  --color-accent: #b8891f;
+  --color-accent-dim: #9a7319;
+  --color-accent-glow: rgba(184, 137, 31, 0.07);
+
+  --color-text-primary: #1c1a16;
+  --color-text-secondary: #6b6860;
+  --color-text-tertiary: #9e9a91;
+
+  --color-gain: #16a34a;
+  --color-gain-dim: rgba(22, 163, 74, 0.1);
+  --color-loss: #e11d48;
+  --color-loss-dim: rgba(225, 29, 72, 0.1);
+}
+
+/* ── Dark theme ── */
+.dark {
   --color-surface-0: #0c0c0c;
   --color-surface-1: #131313;
   --color-surface-2: #1a1a1a;
@@ -18,20 +55,14 @@
   --color-accent-dim: #b8891f;
   --color-accent-glow: rgba(226, 167, 39, 0.08);
 
-  --color-gain: #34d399;
-  --color-gain-dim: rgba(52, 211, 153, 0.15);
-  --color-loss: #fb7185;
-  --color-loss-dim: rgba(251, 113, 133, 0.15);
-
   --color-text-primary: #e8e4de;
   --color-text-secondary: #8a8580;
   --color-text-tertiary: #5c5856;
 
-  --color-chart-1: #e2a727;
-  --color-chart-2: #34d399;
-  --color-chart-3: #818cf8;
-  --color-chart-4: #fb7185;
-  --color-chart-5: #38bdf8;
+  --color-gain: #34d399;
+  --color-gain-dim: rgba(52, 211, 153, 0.15);
+  --color-loss: #fb7185;
+  --color-loss-dim: rgba(251, 113, 133, 0.15);
 }
 
 /* Base styles */
@@ -41,6 +72,7 @@ body {
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Noise texture overlay */
@@ -152,7 +184,7 @@ body::before {
   transition: background-color 0.15s ease;
 }
 .ledger-row:hover {
-  background-color: rgba(226, 167, 39, 0.04);
+  background-color: var(--color-accent-glow);
 }
 
 /* Amount colors */
@@ -166,6 +198,9 @@ body::before {
   border-radius: 8px !important;
   font-family: var(--font-body) !important;
   font-size: 13px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+}
+.dark .recharts-default-tooltip {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
 }
 .recharts-tooltip-label {
