@@ -191,52 +191,69 @@ function TransactionRow({
 
       {/* Expanded detail */}
       {expanded && (
-        <tr className="border-b border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-2)]/30">
-          <td colSpan={6} className="px-12 py-4">
-            <div className="animate-fade-in space-y-3">
-              {/* Postings table */}
-              <table className="w-full">
-                <tbody>
-                  {(txn.postings ?? []).map((p: any, i: number) => {
-                    const pQty = p.amount?.[0]?.quantity ?? 0;
-                    return (
-                      <tr key={i}>
-                        <td className="py-1 text-sm text-[var(--color-text-secondary)]">{p.account}</td>
-                        <td className={`py-1 text-right font-mono text-xs font-medium ${pQty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
-                          {formatMixedAmount(p.amount)}
-                        </td>
-                        <td className="py-1 pl-3 text-right">
-                          {p.status && p.status !== "unmarked" && (
-                            <span className="font-mono text-[10px] uppercase text-[var(--color-text-tertiary)]">
-                              {p.status}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {/* Comment */}
-              {txn.comment && (
-                <div className="flex items-start gap-2 text-sm text-[var(--color-text-tertiary)]">
-                  <MessageSquare size={12} className="mt-0.5 shrink-0" />
-                  {txn.comment}
+        <tr className="border-b border-[var(--color-surface-border)]">
+          <td colSpan={6} className="p-0">
+            <div className="animate-fade-in mx-5 my-4 overflow-hidden rounded-lg border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-0)]">
+              {/* Postings header */}
+              <div className="border-b border-[var(--color-surface-border-subtle)] px-4 py-2">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-4 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
+                  <span>Account</span>
+                  <span className="w-24 text-right">Amount</span>
+                  <span className="w-16 text-right">Status</span>
                 </div>
-              )}
+              </div>
 
-              {/* Tags */}
-              {txn.tags?.length > 0 && (
-                <div className="flex gap-1.5">
-                  {txn.tags.map((tag: string, i: number) => (
-                    <span
-                      key={i}
-                      className="rounded-md bg-[var(--color-surface-3)] px-2 py-0.5 font-mono text-[10px] text-[var(--color-text-tertiary)]"
-                    >
-                      {tag}
+              {/* Posting rows */}
+              {(txn.postings ?? []).map((p: any, i: number) => {
+                const pQty = p.amount?.[0]?.quantity ?? 0;
+                const isLast = i === (txn.postings?.length ?? 0) - 1;
+                return (
+                  <div
+                    key={i}
+                    className={`grid grid-cols-[1fr_auto_auto] items-center gap-4 px-4 py-2.5 ${!isLast ? "border-b border-[var(--color-surface-border-subtle)]/60" : ""}`}
+                  >
+                    <span className="flex items-center gap-2 text-sm text-[var(--color-text-primary)]">
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: pQty >= 0 ? "var(--color-gain)" : "var(--color-loss)" }}
+                      />
+                      {p.account}
                     </span>
-                  ))}
+                    <span className={`w-24 text-right font-mono text-xs font-semibold ${pQty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
+                      {formatMixedAmount(p.amount)}
+                    </span>
+                    <span className="w-16 text-right">
+                      {p.status && p.status !== "unmarked" ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] uppercase text-[var(--color-text-tertiary)]">
+                          {p.status === "cleared" && <Check size={9} />}
+                          {p.status === "pending" && <AlertCircle size={9} />}
+                          {p.status}
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+                );
+              })}
+
+              {/* Footer: comment & tags */}
+              {(txn.comment || txn.tags?.length > 0) && (
+                <div className="border-t border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-2)]/30 px-4 py-2.5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {txn.comment && (
+                      <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)]">
+                        <MessageSquare size={11} className="shrink-0" />
+                        {txn.comment}
+                      </span>
+                    )}
+                    {txn.tags?.length > 0 && txn.tags.map((tag: string, i: number) => (
+                      <span
+                        key={i}
+                        className="rounded bg-[var(--color-surface-3)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-tertiary)]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
