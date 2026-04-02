@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m 'Initial commit: add design document:*)"
+      "Bash(git commit -m 'Initial commit: add design document:*)",
+      "Bash(npm --version)"
     ]
   }
 }
