@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# hledger-web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![hledger-web Dashboard](screenshots/screenshot.png)
 
-Currently, two official plugins are available:
+A modern and visually appealing web interface for hledger built with React and Tailwind CSS. It provides a comprehensive dashboard and detailed views for managing personal finances via the hledger API.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Project Overview
 
-## React Compiler
+hledger-web connects directly to a local [hledger API](https://github.com/wolfsblu/hledger-api) instance to visualize financial data. The application features an interactive dashboard with net worth trends and spending categories, a hierarchical account tree with collapsible sections, and a full transaction register with advanced filtering. Every view respects a global date range filter that includes common presets and custom date selection. The interface supports both dark and light modes, automatically detecting system preferences while allowing for manual overrides.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Technical Architecture
 
-## Expanding the ESLint configuration
+The frontend is built on React 19 and Vite for a fast development experience and optimized production builds. Styling is handled by Tailwind CSS 4, providing a clean and minimal aesthetic. Server state management and caching are powered by TanStack Query, while all API interactions are fully type-safe through a client generated from the OpenAPI specification using openapi-fetch. Charts are rendered with Recharts, and date manipulations utilize date-fns. Testing is conducted with Vitest and React Testing Library.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Quick Start
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Before starting the development server, ensure hledger is installed and the API server is running on port 8080 (e.g., [`hledger-api`](https://github.com/wolfsblu/hledger-api) `--server --port 8080`).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Install the project dependencies by running `npm install`.
+2. Generate the TypeScript types from your local API instance with `curl -s http://127.0.0.1:8080/openapi.json -o openapi.json` and `npx openapi-typescript openapi.json -o src/api/v1.d.ts`.
+3. Launch the application using `npm run dev`. The dashboard will be available at `http://localhost:5173`.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Available Commands
+
+| Command | Action |
+| --- | --- |
+| npm run dev | Starts the local development server |
+| npm run build | Compiles the application for production |
+| npm run preview | Previews the production build locally |
+| npm run lint | Runs code quality checks with ESLint |
+| npm test | Executes the test suite with Vitest |
+
+## Directory Structure
+
+```text
+src/
+├── api/          # Generated types and TanStack Query hooks
+├── components/   # Shared UI (Sidebar, TopBar, Charts, StatCard)
+├── context/      # DateRangeContext for global filtering
+├── lib/          # Formatting utilities and date presets
+├── pages/        # View components for Dashboard, Accounts, etc.
+└── App.tsx       # Main router and layout shell
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## License
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+This project is private and intended for personal use.
