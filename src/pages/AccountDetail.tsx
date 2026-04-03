@@ -39,10 +39,6 @@ export default function AccountDetail() {
     date: h.date,
     balance: h.balance?.[0]?.quantity ?? 0,
   }));
-  // Period closing balance: last history entry, or sum from register entries
-  const periodBalance: any[] = history.length > 0
-    ? (history[history.length - 1]?.balance ?? [])
-    : (entries.length > 0 ? entries[entries.length - 1]?.balance ?? [] : []);
 
   return (
     <div className="stagger-children space-y-8">
@@ -65,9 +61,8 @@ export default function AccountDetail() {
               </span>
             )}
             <span className="text-sm text-[var(--color-text-tertiary)]">
-              Period balance:{" "}
               <span className="font-mono font-semibold text-[var(--color-text-primary)]">
-                {balance.isLoading ? "…" : formatMixedAmount(periodBalance)}
+                {formatMixedAmount(detail.data.balance ?? [])}
               </span>
             </span>
           </div>
