@@ -119,7 +119,7 @@ function AccountSection({ parent, children }: { parent: any; children: any[] }) 
                   ? "text-[var(--color-text-tertiary)]"
                   : child.fullName?.startsWith("expenses")
                     ? "text-[var(--color-loss)]"
-                    : child.fullName?.startsWith("revenues") || child.fullName?.startsWith("income")
+                    : child.fullName?.startsWith("revenue") || child.fullName?.startsWith("income")
                       ? "text-[var(--color-gain)]"
                       : qty >= 0
                         ? "text-[var(--color-text-secondary)]"
