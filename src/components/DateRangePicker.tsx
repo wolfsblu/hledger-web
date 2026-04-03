@@ -10,6 +10,12 @@ export default function DateRangePicker() {
   const [customTo, setCustomTo] = useState(range.to);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Keep custom inputs in sync when range changes (e.g. via preset click)
+  useEffect(() => {
+    setCustomFrom(range.from);
+    setCustomTo(range.to);
+  }, [range.from, range.to]);
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
