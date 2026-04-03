@@ -14,6 +14,7 @@ import { useDateRange } from "../context/DateRangeContext";
 import { useBalanceSheet, useIncomeStatement, useAccounts, useTransactions } from "../api/hooks";
 import { formatMixedAmount, formatAmount } from "../lib/format";
 import StatCard from "../components/StatCard";
+import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
 import { Link } from "react-router";
 
 export default function Dashboard() {
@@ -29,7 +30,7 @@ export default function Dashboard() {
       <div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">
-          {range.label} &middot; {range.from} — {range.to}
+          {range.label.includes("—") ? range.label : `${range.label} \u00b7 ${range.from} \u2014 ${range.to}`}
         </p>
       </div>
 
@@ -39,13 +40,18 @@ export default function Dashboard() {
         <StatCard title="Net Worth" className="lg:col-span-1">
           {balanceSheet.isLoading ? (
             <Shimmer className="h-12 w-48" />
-          ) : balanceSheet.data ? (
-            <div>
-              <div className="font-mono text-4xl font-semibold tracking-tight text-[var(--color-text-primary)]">
-                {formatMixedAmount(balanceSheet.data.netWorth ?? [])}
+          ) : balanceSheet.data ? (() => {
+            const nw = balanceSheet.data.netWorth ?? [];
+            const isZero = nw.length === 0 || nw.every((a: any) => a.quantity === 0);
+            const isNegative = !isZero && nw.some((a: any) => a.quantity < 0);
+            return (
+              <div>
+                <div className={`font-mono text-4xl font-semibold tracking-tight ${isZero ? "text-[var(--color-text-tertiary)]" : isNegative ? "text-[var(--color-loss)]" : "text-[var(--color-text-primary)]"}`}>
+                  {formatMixedAmount(nw)}
+                </div>
               </div>
-            </div>
-          ) : null}
+            );
+          })() : null}
         </StatCard>
 
         {/* Assets */}
@@ -66,21 +72,25 @@ export default function Dashboard() {
         <StatCard title="Total Liabilities">
           {balanceSheet.isLoading ? (
             <Shimmer className="h-12 w-40" />
-          ) : balanceSheet.data ? (
-            <div className="flex items-end gap-2">
-              <span className="font-mono text-3xl font-semibold tracking-tight text-[var(--color-loss)]">
-                {formatMixedAmount(balanceSheet.data.liabilities?.total ?? [])}
-              </span>
-              <TrendingDown size={20} className="mb-1 text-[var(--color-loss)]" />
-            </div>
-          ) : null}
+          ) : balanceSheet.data ? (() => {
+            const total = balanceSheet.data.liabilities?.total ?? [];
+            const isZero = total.length === 0 || total.every((a: any) => a.quantity === 0);
+            return (
+              <div className="flex items-end gap-2">
+                <span className={`font-mono text-3xl font-semibold tracking-tight ${isZero ? "text-[var(--color-text-tertiary)]" : "text-[var(--color-loss)]"}`}>
+                  {formatMixedAmount(total)}
+                </span>
+                {!isZero && <TrendingDown size={20} className="mb-1 text-[var(--color-loss)]" />}
+              </div>
+            );
+          })() : null}
         </StatCard>
       </div>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Income vs Expenses */}
-        <StatCard title="Income vs Expenses">
+        <StatCard title="Income vs Expenses" stretch>
           {incomeStatement.isLoading ? (
             <Shimmer className="h-52" />
           ) : incomeStatement.data ? (
@@ -99,24 +109,23 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Transactions */}
-      <StatCard title="Recent Transactions">
-        <div className="flex items-center justify-between">
-          <div />
+      <StatCard
+        title="Recent Transactions"
+        flush
+        headerAction={
           <Link
             to="/transactions"
-            className="group -mt-2 flex items-center gap-1 text-xs font-medium text-[var(--color-accent-dim)] transition-colors hover:text-[var(--color-accent)]"
+            className="group flex items-center gap-1 text-xs font-medium text-[var(--color-accent-dim)] transition-colors hover:text-[var(--color-accent)]"
           >
             View all
             <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
-        </div>
-        {recentTxns.isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }, (_, i) => <Shimmer key={i} className="h-10" />)}
-          </div>
-        ) : recentTxns.data ? (
-          <RecentTransactions data={recentTxns.data.data?.flat() ?? []} />
-        ) : null}
+        }
+      >
+        <RecentTransactions
+          data={recentTxns.data?.data?.flat() ?? []}
+          isLoading={recentTxns.isLoading}
+        />
       </StatCard>
     </div>
   );
@@ -127,14 +136,17 @@ function Shimmer({ className = "" }: { className?: string }) {
 }
 
 function IncomeVsExpenses({ data }: { data: any }) {
-  const income = Math.abs(data.revenues?.total?.[0]?.quantity ?? 0);
+  const income = Math.abs(
+    (data.revenues?.total ?? data.income?.total ?? [])?.[0]?.quantity ?? 0
+  );
   const expenses = Math.abs(data.expenses?.total?.[0]?.quantity ?? 0);
   const chartData = [{ name: "Period", Income: income, Expenses: expenses }];
   const net = income - expenses;
 
   return (
-    <div>
-      <ResponsiveContainer width="100%" height={200}>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1" style={{ minHeight: 160 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} barGap={12}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-border-subtle)" vertical={false} />
           <XAxis dataKey="name" tick={false} axisLine={false} />
@@ -161,10 +173,19 @@ function IncomeVsExpenses({ data }: { data: any }) {
           <Bar dataKey="Expenses" fill="var(--color-loss)" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-      <div className="mt-3 flex items-center gap-2">
+      </div>
+      <div className="mt-3 flex shrink-0 items-center gap-3">
         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-medium ${net >= 0 ? "bg-[var(--color-gain-dim)] text-[var(--color-gain)]" : "bg-[var(--color-loss-dim)] text-[var(--color-loss)]"}`}>
           {net >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
           {net >= 0 ? "+" : ""}{formatAmount({ commodity: "$", quantity: net })} net
+        </span>
+        <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-tertiary)]">
+          <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-gain)]" />
+          Income: {formatAmount({ commodity: "$", quantity: income })}
+        </span>
+        <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-tertiary)]">
+          <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-loss)]" />
+          Expenses: {formatAmount({ commodity: "$", quantity: expenses })}
         </span>
       </div>
     </div>
@@ -188,8 +209,8 @@ function SpendingByCategory({ accounts }: { accounts: any[] }) {
     "var(--color-chart-4)",
     "var(--color-chart-5)",
     "var(--color-accent-dim)",
-    "var(--color-text-tertiary)",
-    "var(--color-surface-3)",
+    "var(--color-gain)",
+    "var(--color-loss)",
   ];
 
   if (expenses.length === 0) {
@@ -225,37 +246,59 @@ function SpendingByCategory({ accounts }: { accounts: any[] }) {
   );
 }
 
-function RecentTransactions({ data }: { data: any[] }) {
-  if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">No transactions found.</p>;
-  }
+const recentTxnColumns: ColumnDef<any>[] = [
+  {
+    id: "date",
+    header: "Date",
+    width: "7rem",
+    headerClass: "px-4",
+    cellClass: "px-4 font-mono text-xs text-[var(--color-text-tertiary)]",
+    render: (txn) => txn.date,
+  },
+  {
+    id: "description",
+    header: "Description",
+    width: "1fr",
+    headerClass: "px-4",
+    cellClass: "overflow-hidden px-4 font-medium text-[var(--color-text-primary)]",
+    render: (txn) => (
+      <span className="block truncate" title={txn.description}>{txn.description}</span>
+    ),
+  },
+  {
+    id: "account",
+    header: "Account",
+    width: "max-content",
+    headerClass: "px-4",
+    cellClass: "whitespace-nowrap px-4 text-[var(--color-text-tertiary)]",
+    render: (txn) => txn.postings?.[0]?.account,
+  },
+  {
+    id: "amount",
+    header: "Amount",
+    width: "max-content",
+    headerClass: "px-4 text-right",
+    cellClass: "px-4 text-right font-mono text-xs font-medium",
+    render: (txn) => {
+      const p = txn.postings?.[0];
+      const qty = p?.amount?.[0]?.quantity ?? 0;
+      return p ? (
+        <span className={qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}>
+          {formatMixedAmount(p.amount)}
+        </span>
+      ) : null;
+    },
+  },
+];
 
+function RecentTransactions({ data, isLoading }: { data: any[]; isLoading: boolean }) {
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-[var(--color-surface-border-subtle)] text-left">
-          <th className="pb-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">Date</th>
-          <th className="pb-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">Description</th>
-          <th className="pb-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">Account</th>
-          <th className="pb-3 text-right font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((txn: any, i: number) => {
-          const posting = txn.postings?.[0];
-          const qty = posting?.amount?.[0]?.quantity ?? 0;
-          return (
-            <tr key={txn.index ?? i} className="ledger-row border-b border-[var(--color-surface-border-subtle)]/50">
-              <td className="py-3 font-mono text-xs text-[var(--color-text-tertiary)]">{txn.date}</td>
-              <td className="py-3 font-medium text-[var(--color-text-primary)]">{txn.description}</td>
-              <td className="py-3 text-[var(--color-text-tertiary)]">{posting?.account}</td>
-              <td className={`py-3 text-right font-mono text-xs font-medium ${qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
-                {posting ? formatMixedAmount(posting.amount) : ""}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <LedgerGrid
+      columns={recentTxnColumns}
+      rows={data}
+      rowKey={(txn) => txn.index}
+      isLoading={isLoading}
+      emptyMessage="No transactions found."
+    />
   );
 }

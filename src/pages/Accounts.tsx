@@ -114,7 +114,17 @@ function AccountSection({ parent, children }: { parent: any; children: any[] }) 
                   <ExternalLink size={10} className="opacity-0 transition-opacity group-hover/link:opacity-100" />
                 </Link>
               </td>
-              <td className={`px-5 py-2.5 text-right font-mono text-xs font-medium ${qty >= 0 ? "text-[var(--color-text-secondary)]" : "text-[var(--color-loss)]"}`}>
+              <td className={`px-5 py-2.5 text-right font-mono text-xs font-medium ${
+                qty === 0
+                  ? "text-[var(--color-text-tertiary)]"
+                  : child.fullName?.startsWith("expenses")
+                    ? "text-[var(--color-loss)]"
+                    : child.fullName?.startsWith("revenues") || child.fullName?.startsWith("income")
+                      ? "text-[var(--color-gain)]"
+                      : qty >= 0
+                        ? "text-[var(--color-text-secondary)]"
+                        : "text-[var(--color-loss)]"
+              }`}>
                 {formatMixedAmount(child.balance)}
               </td>
             </tr>

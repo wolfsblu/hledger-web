@@ -34,10 +34,15 @@ export default function AccountDetail() {
   const total = register.data?.total ?? 0;
   const entries = register.data?.entries ?? [];
 
-  const balanceChartData = (balance.data?.history ?? []).map((h: any) => ({
+  const history = balance.data?.history ?? [];
+  const balanceChartData = history.map((h: any) => ({
     date: h.date,
     balance: h.balance?.[0]?.quantity ?? 0,
   }));
+  // Period closing balance: last history entry, or sum from register entries
+  const periodBalance: any[] = history.length > 0
+    ? (history[history.length - 1]?.balance ?? [])
+    : (entries.length > 0 ? entries[entries.length - 1]?.balance ?? [] : []);
 
   return (
     <div className="stagger-children space-y-8">
@@ -60,9 +65,9 @@ export default function AccountDetail() {
               </span>
             )}
             <span className="text-sm text-[var(--color-text-tertiary)]">
-              Balance:{" "}
+              Period balance:{" "}
               <span className="font-mono font-semibold text-[var(--color-text-primary)]">
-                {formatMixedAmount(detail.data.balance ?? [])}
+                {balance.isLoading ? "…" : formatMixedAmount(periodBalance)}
               </span>
             </span>
           </div>
@@ -160,15 +165,17 @@ export default function AccountDetail() {
                 const qty = entry.amount?.[0]?.quantity ?? 0;
                 return (
                   <tr key={i} className="ledger-row border-b border-[var(--color-surface-border-subtle)]/50">
-                    <td className="px-5 py-3 font-mono text-xs text-[var(--color-text-tertiary)]">{entry.date}</td>
-                    <td className="px-5 py-3 font-medium text-[var(--color-text-primary)]">{entry.description}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-tertiary)]">
-                      {(entry.otherAccounts ?? []).join(", ")}
+                    <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-[var(--color-text-tertiary)]">{entry.date}</td>
+                    <td className="max-w-[220px] px-5 py-3 font-medium text-[var(--color-text-primary)]">
+                      <span className="block truncate" title={entry.description}>{entry.description}</span>
                     </td>
-                    <td className={`px-5 py-3 text-right font-mono text-xs font-medium ${qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
+                    <td className="max-w-[180px] px-5 py-3 text-[var(--color-text-tertiary)]">
+                      <span className="block truncate">{(entry.otherAccounts ?? []).join(", ")}</span>
+                    </td>
+                    <td className={`whitespace-nowrap px-5 py-3 text-right font-mono text-xs font-medium ${qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
                       {formatMixedAmount(entry.amount ?? [])}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono text-xs text-[var(--color-text-secondary)]">
+                    <td className="whitespace-nowrap px-5 py-3 text-right font-mono text-xs text-[var(--color-text-secondary)]">
                       {formatMixedAmount(entry.balance ?? [])}
                     </td>
                   </tr>

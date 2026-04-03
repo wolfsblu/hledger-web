@@ -31,9 +31,10 @@ export function formatMixedAmount(amounts: Amount[]): string {
     merged.set(commodity, (merged.get(commodity) ?? 0) + quantity);
   }
 
-  return Array.from(merged, ([commodity, quantity]) =>
-    formatAmount({ commodity, quantity })
-  ).join(", ");
+  const entries = Array.from(merged, ([commodity, quantity]) => ({ commodity, quantity }));
+  const nonZero = entries.filter(e => e.quantity !== 0);
+  const toFormat = nonZero.length > 0 ? nonZero : entries.slice(0, 1);
+  return toFormat.map(e => formatAmount(e)).join(", ");
 }
 
 export function formatDate(dateStr: string): string {
