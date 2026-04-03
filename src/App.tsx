@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DateRangeProvider } from "./context/DateRangeContext";
@@ -18,14 +19,21 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <QueryClientProvider client={queryClient}>
       <DateRangeProvider>
         <BrowserRouter>
           <div className="min-h-screen bg-[var(--color-surface-0)] font-body text-[var(--color-text-primary)]">
-            <Sidebar />
-            <div className="pl-60">
-              <TopBar />
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            {sidebarOpen && (
+              <div
+                className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            <div className="lg:pl-60">
+              <TopBar onMenuClick={() => setSidebarOpen(true)} />
               <main className="p-8">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
