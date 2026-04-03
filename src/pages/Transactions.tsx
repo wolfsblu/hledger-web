@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, MessageSquare, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, MessageSquare, ArrowUpDown, ArrowUp, ArrowDown, Plus } from "lucide-react";
 import { useTransactions } from "../api/hooks";
 import { useDateRange } from "../context/DateRangeContext";
 import { formatMixedAmount } from "../lib/format";
 import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
+import NewTransactionDrawer from "../components/NewTransactionDrawer";
 
 const PAGE_SIZE = 50;
 
@@ -13,6 +14,7 @@ export default function Transactions() {
   const [offset, setOffset] = useState(0);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useMemo(() => {
     const timer = setTimeout(() => {
@@ -106,12 +108,23 @@ export default function Transactions() {
   ];
 
   return (
+    <>
+    <NewTransactionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     <div className="stagger-children space-y-8">
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Transactions</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">
-          {range.label} &middot; {total > 0 ? `${total} transactions` : "No results"}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Transactions</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">
+            {range.label} &middot; {total > 0 ? `${total} transactions` : "No results"}
+          </p>
+        </div>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-dim)]"
+        >
+          <Plus size={14} />
+          New
+        </button>
       </div>
 
       <div className="relative">
@@ -160,6 +173,7 @@ export default function Transactions() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

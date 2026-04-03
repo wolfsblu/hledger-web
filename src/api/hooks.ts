@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { components } from "./v1";
 import client from "./client";
 
 export function useAccounts(params: { depth?: number; type?: string }) {
@@ -75,6 +76,42 @@ export function useTransactions(params: {
       });
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export function usePayees() {
+  return useQuery({
+    queryKey: ["payees"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/api/v1/payees", {});
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCommodities() {
+  return useQuery({
+    queryKey: ["commodities"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/api/v1/commodities", {});
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: components["schemas"]["CreateTransactionRequest"]) => {
+      const { data, error } = await client.POST("/api/v1/transactions", { body });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 }

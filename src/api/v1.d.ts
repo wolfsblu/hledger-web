@@ -240,7 +240,37 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json;charset=utf-8": components["schemas"]["CreateTransactionRequest"];
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        Location?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json;charset=utf-8": components["schemas"]["Transaction"];
+                    };
+                };
+                /** @description Invalid `body` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -637,6 +667,22 @@ export interface components {
             account: string;
             amount: components["schemas"]["MixedAmount"];
             status: components["schemas"]["Status"];
+        };
+        CreateTransactionRequest: {
+            code?: string;
+            comment?: string;
+            /** Format: date */
+            date: string;
+            /** Format: date */
+            date2?: string;
+            description: string;
+            postings: components["schemas"]["CreatePosting"][];
+            status?: components["schemas"]["Status"];
+        };
+        CreatePosting: {
+            account: string;
+            amount?: components["schemas"]["MixedAmount"];
+            status?: components["schemas"]["Status"];
         };
         BalanceSheetReport: {
             assets?: components["schemas"]["ReportSection"];
