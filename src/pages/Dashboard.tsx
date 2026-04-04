@@ -25,13 +25,17 @@ export default function Dashboard() {
   const balanceSheet = useBalanceSheet({});
   const incomeStatement = useIncomeStatement({ from: range.from, to: range.to, depth: 2 });
   const recentTxns = useTransactions({ limit: 10 });
-  const assetsRegister = useAccountRegister("assets", { to: range.to });
-  const liabilitiesRegister = useAccountRegister("liabilities", { to: range.to });
+  const assetsRegister = useAccountRegister("assets", { from: range.from, to: range.to, limit: 10000 });
+  const liabilitiesRegister = useAccountRegister("liabilities", { from: range.from, to: range.to, limit: 10000 });
 
-  const toBalanceItems = (entries: NonNullable<ReturnType<typeof useAccountRegister>["data"]>["entries"]) =>
-    (entries ?? [])
-      .filter((e) => e.date && e.balance)
-      .map((e) => ({ date: e.date!, balance: e.balance! }));
+  const toBalanceItems = (entries: NonNullable<ReturnType<typeof useAccountRegister>["data"]>["entries"]) => {
+    // Keep only the last entry per date (end-of-day balance)
+    const byDate = new Map<string, typeof entries[number]>();
+    for (const e of entries ?? []) {
+      if (e.date && e.balance) byDate.set(e.date, e);
+    }
+    return Array.from(byDate.values()).map((e) => ({ date: e.date!, balance: e.balance! }));
+  };
 
   const netWorthSeries = mergeNetWorthHistory(
     toBalanceItems(assetsRegister.data?.entries),
