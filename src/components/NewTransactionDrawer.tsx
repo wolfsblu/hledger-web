@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Plus, Trash2, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react";
-import { useAccounts, usePayees, useCommodities, useCreateTransaction } from "../api/hooks";
+import { useAccounts, useCommodities, useCreateTransaction } from "../api/hooks";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,12 +161,10 @@ interface NewTransactionDrawerProps {
 
 export default function NewTransactionDrawer({ open, onClose }: NewTransactionDrawerProps) {
   const { data: accounts } = useAccounts({});
-  const { data: payees } = usePayees();
   const { data: commodities } = useCommodities();
   const createTxn = useCreateTransaction();
 
   const accountNames = accounts?.map(a => a.fullName) ?? [];
-  const payeeNames = payees ?? [];
   const defaultCommodity = commodities?.[0]?.symbol ?? "";
 
 
@@ -315,11 +313,13 @@ export default function NewTransactionDrawer({ open, onClose }: NewTransactionDr
               <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
                 Description
               </label>
-              <Combobox
+              <input
+                type="text"
                 value={form.description}
-                onChange={v => setForm(f => ({ ...f, description: v }))}
-                options={payeeNames}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Groceries, Rent, Salary…"
+                autoComplete="off"
+                className="w-full rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-1)] px-3 py-2 font-mono text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] focus:outline-none"
               />
             </div>
 
