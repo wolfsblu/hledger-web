@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { useDateRange } from "../context/DateRangeContext";
-import { useBalanceSheet, useIncomeStatement, useAccounts, useTransactions, useAccountBalance } from "../api/hooks";
+import { useBalanceSheet, useIncomeStatement, useTransactions, useAccountBalance } from "../api/hooks";
 import { formatMixedAmount, formatAmount, mergeNetWorthHistory } from "../lib/format";
 import StatCard from "../components/StatCard";
 import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
@@ -23,10 +23,9 @@ export default function Dashboard() {
   const { range } = useDateRange();
   const balanceSheet = useBalanceSheet({});
   const incomeStatement = useIncomeStatement({ from: range.from, to: range.to, depth: 2 });
-  const expenseAccounts = useAccounts({ depth: 2, type: "expense" });
   const recentTxns = useTransactions({ limit: 10 });
-  const assetsHistory = useAccountBalance("assets", { from: range.from, to: range.to });
-  const liabilitiesHistory = useAccountBalance("liabilities", { from: range.from, to: range.to });
+  const assetsHistory = useAccountBalance("assets", { to: range.to });
+  const liabilitiesHistory = useAccountBalance("liabilities", { to: range.to });
 
   const netWorthSeries = mergeNetWorthHistory(
     assetsHistory.data?.history ?? [],
@@ -113,10 +112,10 @@ export default function Dashboard() {
 
         {/* Spending by Category */}
         <StatCard title="Spending by Category">
-          {expenseAccounts.isLoading ? (
+          {incomeStatement.isLoading ? (
             <Shimmer className="h-52" />
-          ) : expenseAccounts.data ? (
-            <SpendingByCategory accounts={expenseAccounts.data} />
+          ) : incomeStatement.data ? (
+            <SpendingByCategory rows={incomeStatement.data.expenses?.rows ?? []} />
           ) : null}
         </StatCard>
       </div>
@@ -205,13 +204,14 @@ function IncomeVsExpenses({ data }: { data: any }) {
   );
 }
 
-function SpendingByCategory({ accounts }: { accounts: any[] }) {
-  const expenses = accounts
-    .filter((a: any) => a.fullName !== "expenses" && a.fullName?.startsWith("expenses:"))
-    .map((a: any) => ({
-      name: a.name,
-      amount: Math.abs(a.balance?.[0]?.quantity ?? 0),
+function SpendingByCategory({ rows }: { rows: any[] }) {
+  const expenses = rows
+    .filter((r: any) => r.account && r.account !== "expenses")
+    .map((r: any) => ({
+      name: r.account?.split(":").pop() ?? r.account,
+      amount: Math.abs(r.amount?.[0]?.quantity ?? 0),
     }))
+    .filter((r) => r.amount > 0)
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 8);
 
