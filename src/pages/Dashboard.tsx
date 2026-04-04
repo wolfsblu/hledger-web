@@ -3,6 +3,8 @@ import {
   Bar,
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -11,8 +13,8 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { useDateRange } from "../context/DateRangeContext";
-import { useBalanceSheet, useIncomeStatement, useAccounts, useTransactions } from "../api/hooks";
-import { formatMixedAmount, formatAmount } from "../lib/format";
+import { useBalanceSheet, useIncomeStatement, useAccounts, useTransactions, useAccountBalance } from "../api/hooks";
+import { formatMixedAmount, formatAmount, mergeNetWorthHistory } from "../lib/format";
 import StatCard from "../components/StatCard";
 import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
 import { Link } from "react-router";
@@ -23,6 +25,14 @@ export default function Dashboard() {
   const incomeStatement = useIncomeStatement({ from: range.from, to: range.to, depth: 2 });
   const expenseAccounts = useAccounts({ depth: 2, type: "expense" });
   const recentTxns = useTransactions({ limit: 10 });
+  const assetsHistory = useAccountBalance("assets", { from: range.from, to: range.to });
+  const liabilitiesHistory = useAccountBalance("liabilities", { from: range.from, to: range.to });
+
+  const netWorthSeries = mergeNetWorthHistory(
+    assetsHistory.data?.history ?? [],
+    liabilitiesHistory.data?.history ?? []
+  );
+  const isNetWorthLoading = assetsHistory.isLoading || liabilitiesHistory.isLoading;
 
   return (
     <div className="stagger-children space-y-8">
@@ -86,6 +96,9 @@ export default function Dashboard() {
           })() : null}
         </StatCard>
       </div>
+
+      {/* Net Worth Over Time */}
+      <NetWorthChart series={netWorthSeries} isLoading={isNetWorthLoading} />
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -300,5 +313,135 @@ function RecentTransactions({ data, isLoading }: { data: any[]; isLoading: boole
       isLoading={isLoading}
       emptyMessage="No transactions found."
     />
+  );
+}
+
+function NetWorthChart({
+  series,
+  isLoading,
+}: {
+  series: { date: string; netWorth: number }[];
+  isLoading: boolean;
+}) {
+  const first = series[0]?.netWorth ?? 0;
+  const last = series[series.length - 1]?.netWorth ?? 0;
+  const delta = last - first;
+  const deltaPercent = first !== 0 ? (delta / Math.abs(first)) * 100 : 0;
+  const isGain = delta >= 0;
+  const trendColor = isGain ? "var(--color-gain)" : "var(--color-loss)";
+
+  const spanDays =
+    series.length >= 2
+      ? (new Date(series[series.length - 1].date).getTime() -
+          new Date(series[0].date).getTime()) /
+        (1000 * 60 * 60 * 24)
+      : 0;
+  const xTickFormat = spanDays > 180 ? "MMM yy" : "MMM d";
+
+  const formatXTick = (dateStr: string) => {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      ...(xTickFormat === "MMM d" ? { day: "numeric" } : { year: "2-digit" }),
+    });
+  };
+
+  const formatYTick = (v: number) => {
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
+    return `$${v.toFixed(0)}`;
+  };
+
+  return (
+    <StatCard
+      title="Net Worth Over Time"
+      stretch
+      headerAction={
+        !isLoading && series.length >= 2 ? (
+          <span
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-medium ${
+              isGain
+                ? "bg-[var(--color-gain-dim)] text-[var(--color-gain)]"
+                : "bg-[var(--color-loss-dim)] text-[var(--color-loss)]"
+            }`}
+          >
+            {isGain ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            {isGain ? "+" : ""}
+            {formatAmount({ commodity: "$", quantity: delta })}
+            {" "}
+            ({isGain ? "+" : ""}{deltaPercent.toFixed(1)}%)
+          </span>
+        ) : null
+      }
+    >
+      {isLoading ? (
+        <Shimmer className="h-52" />
+      ) : series.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
+          No data for this period.
+        </p>
+      ) : (
+        <div style={{ minHeight: 200 }}>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={trendColor} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={trendColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-surface-border-subtle)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                tickFormatter={formatXTick}
+                fontSize={11}
+                fontFamily="var(--font-mono)"
+                tick={{ fill: "var(--color-text-tertiary)" }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={40}
+              />
+              <YAxis
+                tickFormatter={formatYTick}
+                fontSize={11}
+                fontFamily="var(--font-mono)"
+                tick={{ fill: "var(--color-text-tertiary)" }}
+                axisLine={false}
+                tickLine={false}
+                width={56}
+              />
+              <Tooltip
+                formatter={(v: number) => [
+                  formatAmount({ commodity: "$", quantity: v }),
+                  "Net Worth",
+                ]}
+                labelFormatter={formatXTick}
+                contentStyle={{
+                  background: "var(--color-surface-2)",
+                  border: "1px solid var(--color-surface-border)",
+                  borderRadius: "8px",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "12px",
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="netWorth"
+                stroke={trendColor}
+                strokeWidth={2}
+                fill="url(#netWorthGradient)"
+                dot={false}
+                activeDot={{ r: 4, fill: trendColor, strokeWidth: 0 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </StatCard>
   );
 }
