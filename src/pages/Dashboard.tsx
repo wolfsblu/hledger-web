@@ -10,10 +10,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { useDateRange } from "../context/DateRangeContext";
-import { useBalanceSheet, useIncomeStatement, useTransactions, useAccountBalance } from "../api/hooks";
+import { useBalanceSheet, useIncomeStatement, useTransactions, useAccountRegister } from "../api/hooks";
 import { formatMixedAmount, formatAmount, mergeNetWorthHistory } from "../lib/format";
 import StatCard from "../components/StatCard";
 import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
@@ -24,14 +25,19 @@ export default function Dashboard() {
   const balanceSheet = useBalanceSheet({});
   const incomeStatement = useIncomeStatement({ from: range.from, to: range.to, depth: 2 });
   const recentTxns = useTransactions({ limit: 10 });
-  const assetsHistory = useAccountBalance("assets", { to: range.to });
-  const liabilitiesHistory = useAccountBalance("liabilities", { to: range.to });
+  const assetsRegister = useAccountRegister("assets", { to: range.to });
+  const liabilitiesRegister = useAccountRegister("liabilities", { to: range.to });
+
+  const toBalanceItems = (entries: NonNullable<ReturnType<typeof useAccountRegister>["data"]>["entries"]) =>
+    (entries ?? [])
+      .filter((e) => e.date && e.balance)
+      .map((e) => ({ date: e.date!, balance: e.balance! }));
 
   const netWorthSeries = mergeNetWorthHistory(
-    assetsHistory.data?.history ?? [],
-    liabilitiesHistory.data?.history ?? []
+    toBalanceItems(assetsRegister.data?.entries),
+    toBalanceItems(liabilitiesRegister.data?.entries)
   );
-  const isNetWorthLoading = assetsHistory.isLoading || liabilitiesHistory.isLoading;
+  const isNetWorthLoading = assetsRegister.isLoading || liabilitiesRegister.isLoading;
 
   return (
     <div className="stagger-children space-y-8">
@@ -346,11 +352,16 @@ function NetWorthChart({
     });
   };
 
+  const baseline = series[0]?.netWorth ?? 0;
+  const deltaSeries = series.map((p) => ({ ...p, delta: p.netWorth - baseline }));
+
   const formatYTick = (v: number) => {
+    if (v === 0) return "$0";
     const abs = Math.abs(v);
-    if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-    if (abs >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
-    return `$${v.toFixed(0)}`;
+    const sign = v > 0 ? "+" : "-";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}k`;
+    return `${sign}$${abs.toFixed(0)}`;
   };
 
   return (
@@ -384,7 +395,7 @@ function NetWorthChart({
       ) : (
         <div style={{ minHeight: 200 }}>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <AreaChart data={deltaSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={trendColor} stopOpacity={0.25} />
@@ -415,9 +426,10 @@ function NetWorthChart({
                 tickLine={false}
                 width={56}
               />
+              <ReferenceLine y={0} stroke="var(--color-surface-border)" strokeDasharray="3 3" />
               <Tooltip
-                formatter={(v: number) => [
-                  formatAmount({ commodity: "$", quantity: v }),
+                formatter={(_v: number, _name: string, props: any) => [
+                  formatAmount({ commodity: "$", quantity: props.payload.netWorth }),
                   "Net Worth",
                 ]}
                 labelFormatter={formatXTick}
@@ -431,7 +443,7 @@ function NetWorthChart({
               />
               <Area
                 type="monotone"
-                dataKey="netWorth"
+                dataKey="delta"
                 stroke={trendColor}
                 strokeWidth={2}
                 fill="url(#netWorthGradient)"
