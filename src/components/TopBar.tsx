@@ -42,17 +42,22 @@ function PeriodNetWorthChange() {
 
   if (assetEntries.length === 0 && liabEntries.length === 0) return null;
 
-  // Historical end-of-period balance (liabilities are stored negative in hledger)
+  const commodity =
+    assetEntries[0]?.balance?.[0]?.commodity ??
+    liabEntries[0]?.balance?.[0]?.commodity ??
+    "$";
+
+  // Historical end-of-period balance for a single commodity (liabilities are stored negative in hledger)
   const lastBalance = (entries: typeof assetEntries) => {
     const byDate = new Map<string, typeof entries[number]>();
     for (const e of entries) if (e.date && e.balance) byDate.set(e.date, e);
     const sorted = Array.from(byDate.values()).sort((a, b) => a.date!.localeCompare(b.date!));
-    return sorted[sorted.length - 1]?.balance?.[0]?.quantity ?? 0;
+    return sorted[sorted.length - 1]?.balance?.find((a) => a.commodity === commodity)?.quantity ?? 0;
   };
 
-  // Sum of posting amounts in period = net flow for this account
+  // Sum of posting amounts in period = net flow for this account (same commodity)
   const sumAmounts = (entries: typeof assetEntries) =>
-    entries.reduce((acc, e) => acc + (e.amount?.[0]?.quantity ?? 0), 0);
+    entries.reduce((acc, e) => acc + (e.amount?.find((a) => a.commodity === commodity)?.quantity ?? 0), 0);
 
   const endNw = lastBalance(assetEntries) + lastBalance(liabEntries);
   const change = sumAmounts(assetEntries) + sumAmounts(liabEntries);
@@ -60,12 +65,8 @@ function PeriodNetWorthChange() {
 
   if (change === 0) return null;
 
-  const commodity =
-    assetEntries[0]?.balance?.[0]?.commodity ??
-    liabEntries[0]?.balance?.[0]?.commodity ??
-    "$";
-
-  const pct = startNw !== 0 ? Math.round((change / Math.abs(startNw)) * 100) : null;
+  // Only show percentage when starting NW is large enough to be meaningful
+  const pct = Math.abs(startNw) >= 1 ? Math.round((change / Math.abs(startNw)) * 100) : null;
   const isPositive = change >= 0;
 
   return (
