@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -15,7 +16,7 @@ import {
 import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { useDateRange } from "../context/DateRangeContext";
 import { useBalanceSheet, useIncomeStatement, useTransactions, useAccountRegister } from "../api/hooks";
-import { formatMixedAmount, formatAmount, mergeNetWorthHistory } from "../lib/format";
+import { formatMixedAmount, formatAmount, mergeNetWorthByCommodity } from "../lib/format";
 import StatCard from "../components/StatCard";
 import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
 import { Link } from "react-router";
@@ -37,7 +38,7 @@ export default function Dashboard() {
     return Array.from(byDate.values()).map((e) => ({ date: e.date!, balance: e.balance! }));
   };
 
-  const netWorthSeries = mergeNetWorthHistory(
+  const { series: netWorthSeries, commodities: netWorthCommodities } = mergeNetWorthByCommodity(
     toBalanceItems(assetsRegister.data?.entries),
     toBalanceItems(liabilitiesRegister.data?.entries)
   );
@@ -107,7 +108,7 @@ export default function Dashboard() {
       </div>
 
       {/* Net Worth Over Time */}
-      <NetWorthChart series={netWorthSeries} isLoading={isNetWorthLoading} from={range.from} to={range.to} />
+      <NetWorthChart series={netWorthSeries} commodities={netWorthCommodities} isLoading={isNetWorthLoading} from={range.from} to={range.to} />
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -158,12 +159,22 @@ function Shimmer({ className = "" }: { className?: string }) {
 }
 
 function IncomeVsExpenses({ data }: { data: any }) {
-  const income = Math.abs(
-    (data.revenues?.total ?? data.income?.total ?? [])?.[0]?.quantity ?? 0
-  );
-  const expenses = Math.abs(data.expenses?.total?.[0]?.quantity ?? 0);
+  const incomeTotals: any[] = data.revenues?.total ?? data.income?.total ?? [];
+  const expenseTotals: any[] = data.expenses?.total ?? [];
+  const commodity = incomeTotals[0]?.commodity ?? expenseTotals[0]?.commodity ?? "$";
+  const income = Math.abs(incomeTotals[0]?.quantity ?? 0);
+  const expenses = Math.abs(expenseTotals[0]?.quantity ?? 0);
   const chartData = [{ name: "Period", Income: income, Expenses: expenses }];
   const net = income - expenses;
+
+  const fmt = (v: number) => formatAmount({ commodity, quantity: v });
+  const fmtAxis = (v: number) => {
+    const abs = Math.abs(v);
+    const sym = commodity === "$" || commodity === "USD" ? "$" : commodity + " ";
+    if (abs >= 1_000_000) return `${sym}${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sym}${(abs / 1_000).toFixed(0)}k`;
+    return fmt(v);
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -173,7 +184,7 @@ function IncomeVsExpenses({ data }: { data: any }) {
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-border-subtle)" vertical={false} />
           <XAxis dataKey="name" tick={false} axisLine={false} />
           <YAxis
-            tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
+            tickFormatter={fmtAxis}
             fontSize={11}
             fontFamily="var(--font-mono)"
             tick={{ fill: "var(--color-text-tertiary)" }}
@@ -182,7 +193,7 @@ function IncomeVsExpenses({ data }: { data: any }) {
           />
           <Tooltip
             cursor={{ fill: "var(--color-accent-glow)" }}
-            formatter={(v: number) => [`$${v.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, undefined]}
+            formatter={(v: number) => [fmt(v), undefined]}
             contentStyle={{
               background: "var(--color-surface-2)",
               border: "1px solid var(--color-surface-border)",
@@ -199,15 +210,15 @@ function IncomeVsExpenses({ data }: { data: any }) {
       <div className="mt-3 flex shrink-0 items-center gap-3">
         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-medium ${net >= 0 ? "bg-[var(--color-gain-dim)] text-[var(--color-gain)]" : "bg-[var(--color-loss-dim)] text-[var(--color-loss)]"}`}>
           {net >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          {net >= 0 ? "+" : ""}{formatAmount({ commodity: "$", quantity: net })} net
+          {net >= 0 ? "+" : ""}{fmt(net)} net
         </span>
         <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-tertiary)]">
           <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-gain)]" />
-          Income: {formatAmount({ commodity: "$", quantity: income })}
+          Income: {fmt(income)}
         </span>
         <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-tertiary)]">
           <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-loss)]" />
-          Expenses: {formatAmount({ commodity: "$", quantity: expenses })}
+          Expenses: {fmt(expenses)}
         </span>
       </div>
     </div>
@@ -220,6 +231,7 @@ function SpendingByCategory({ rows }: { rows: any[] }) {
     .map((r: any) => ({
       name: r.account?.split(":").pop() ?? r.account,
       amount: Math.abs(r.amount?.[0]?.quantity ?? 0),
+      commodity: r.amount?.[0]?.commodity ?? "$",
     }))
     .filter((r) => r.amount > 0)
     .sort((a, b) => b.amount - a.amount)
@@ -251,7 +263,7 @@ function SpendingByCategory({ rows }: { rows: any[] }) {
               {exp.name}
             </span>
             <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
-              ${exp.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              {formatAmount({ commodity: exp.commodity, quantity: exp.amount })}
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
@@ -326,31 +338,60 @@ function RecentTransactions({ data, isLoading }: { data: any[]; isLoading: boole
   );
 }
 
+// Each entry: [positive color, negative color]
+// Positive = above zero (cool tones — never red/orange)
+// Negative = below zero (warm tones — never green/teal)
+// No two commodities share any color
+const COMMODITY_PALETTE: [string, string][] = [
+  ["#60a5fa", "#fb923c"], // blue      / orange
+  ["#a78bfa", "#f472b6"], // violet    / pink
+  ["#34d399", "#fbbf24"], // emerald   / amber  — green is fine as positive, amber ≠ red
+  ["#22d3ee", "#f87171"], // cyan      / coral-red
+  ["#818cf8", "#e879f9"], // indigo    / fuchsia
+];
+
 function NetWorthChart({
   series,
+  commodities,
   isLoading,
   from,
   to,
 }: {
-  series: { date: string; netWorth: number }[];
+  series: { date: string; [c: string]: number }[];
+  commodities: string[];
   isLoading: boolean;
   from: string;
   to: string;
 }) {
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const toggle = (c: string) =>
+    setHidden((prev) => {
+      const s = new Set(prev);
+      s.has(c) ? s.delete(c) : s.add(c);
+      return s;
+    });
+  const visible = commodities.filter((c) => !hidden.has(c));
+
   const paddedSeries =
     series.length === 1
       ? [
-          { date: from, netWorth: series[0].netWorth },
+          { date: from, ...Object.fromEntries(commodities.map((c) => [c, series[0][c] ?? 0])) },
           series[0],
-          { date: to, netWorth: series[0].netWorth },
+          { date: to, ...Object.fromEntries(commodities.map((c) => [c, series[0][c] ?? 0])) },
         ]
       : series;
 
-  const first = paddedSeries[0]?.netWorth ?? 0;
-  const last = paddedSeries[paddedSeries.length - 1]?.netWorth ?? 0;
-  const delta = last - first;
-  const deltaPercent = first !== 0 ? (delta / Math.abs(first)) * 100 : 0;
-  const isGain = delta >= 0;
+  const baselines: Record<string, number> = {};
+  for (const c of commodities) baselines[c] = paddedSeries[0]?.[c] ?? 0;
+
+  const chartData = paddedSeries.map((p) => {
+    const entry: Record<string, number | string> = { date: p.date };
+    for (const c of commodities) {
+      entry[c] = p[c] - baselines[c];
+      entry[c + "_abs"] = p[c];
+    }
+    return entry;
+  });
 
   const spanDays =
     paddedSeries.length >= 2
@@ -368,21 +409,13 @@ function NetWorthChart({
     });
   };
 
-  const baseline = paddedSeries[0]?.netWorth ?? 0;
-  const deltaSeries = paddedSeries.map((p) => ({ ...p, delta: p.netWorth - baseline }));
-
-  const maxDelta = Math.max(...deltaSeries.map((p) => p.delta), 0);
-  const minDelta = Math.min(...deltaSeries.map((p) => p.delta), 0);
-  const deltaSpan = maxDelta - minDelta;
-  const zeroOffset = deltaSpan > 0 ? `${((maxDelta / deltaSpan) * 100).toFixed(2)}%` : "0%";
-
   const formatYTick = (v: number) => {
-    if (v === 0) return "$0";
+    if (v === 0) return "0";
     const abs = Math.abs(v);
     const sign = v > 0 ? "+" : "-";
-    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}k`;
-    return `${sign}$${abs.toFixed(0)}`;
+    if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(0)}k`;
+    return `${sign}${abs.toFixed(0)}`;
   };
 
   return (
@@ -390,20 +423,27 @@ function NetWorthChart({
       title="Net Worth Over Time"
       stretch
       headerAction={
-        !isLoading && paddedSeries.length >= 2 ? (
-          <span
-            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-medium ${
-              isGain
-                ? "bg-[var(--color-gain-dim)] text-[var(--color-gain)]"
-                : "bg-[var(--color-loss-dim)] text-[var(--color-loss)]"
-            }`}
-          >
-            {isGain ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            {isGain ? "+" : ""}
-            {formatAmount({ commodity: "$", quantity: delta })}
-            {" "}
-            ({isGain ? "+" : ""}{deltaPercent.toFixed(1)}%)
-          </span>
+        !isLoading && commodities.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {commodities.map((c, i) => {
+              const base = baselines[c];
+              const last = paddedSeries[paddedSeries.length - 1]?.[c] ?? base;
+              const absDelta = last - base;
+              const isUp = absDelta >= 0;
+              const [posColor] = COMMODITY_PALETTE[i % COMMODITY_PALETTE.length];
+              return (
+                <button
+                  key={c}
+                  onClick={() => toggle(c)}
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-xs font-medium transition-opacity ${hidden.has(c) ? "opacity-30" : "opacity-100"}`}
+                  style={{ color: posColor, borderColor: posColor }}
+                >
+                  {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                  {isUp ? "+" : ""}{formatAmount({ commodity: c, quantity: absDelta })}
+                </button>
+              );
+            })}
+          </div>
         ) : null
       }
     >
@@ -416,20 +456,32 @@ function NetWorthChart({
       ) : (
         <div style={{ minHeight: 200 }}>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={deltaSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
-                <linearGradient id="netWorthFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"         stopColor="var(--color-gain)" stopOpacity={0.25} />
-                  <stop offset={zeroOffset} stopColor="var(--color-gain)" stopOpacity={0.02} />
-                  <stop offset={zeroOffset} stopColor="var(--color-loss)" stopOpacity={0.02} />
-                  <stop offset="100%"       stopColor="var(--color-loss)" stopOpacity={0.25} />
-                </linearGradient>
-                <linearGradient id="netWorthStroke" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"         stopColor="var(--color-gain)" stopOpacity={1} />
-                  <stop offset={zeroOffset} stopColor="var(--color-gain)" stopOpacity={1} />
-                  <stop offset={zeroOffset} stopColor="var(--color-loss)" stopOpacity={1} />
-                  <stop offset="100%"       stopColor="var(--color-loss)" stopOpacity={1} />
-                </linearGradient>
+                {commodities.map((c, i) => {
+                  const vals = chartData.map((p) => p[c] as number);
+                  const maxD = Math.max(...vals, 0);
+                  const minD = Math.min(...vals, 0);
+                  const span = maxD - minD;
+                  const z = span > 0 ? `${((maxD / span) * 100).toFixed(2)}%` : "0%";
+                  const [pos, neg] = COMMODITY_PALETTE[i % COMMODITY_PALETTE.length];
+                  return (
+                    <g key={c}>
+                      <linearGradient id={`nwFill${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%"   stopColor={pos} stopOpacity={0.25} />
+                        <stop offset={z}    stopColor={pos} stopOpacity={0.02} />
+                        <stop offset={z}    stopColor={neg} stopOpacity={0.02} />
+                        <stop offset="100%" stopColor={neg} stopOpacity={0.25} />
+                      </linearGradient>
+                      <linearGradient id={`nwStroke${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%"  stopColor={pos} stopOpacity={1} />
+                        <stop offset={z}   stopColor={pos} stopOpacity={1} />
+                        <stop offset={z}   stopColor={neg} stopOpacity={1} />
+                        <stop offset="100%" stopColor={neg} stopOpacity={1} />
+                      </linearGradient>
+                    </g>
+                  );
+                })}
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -457,9 +509,9 @@ function NetWorthChart({
               />
               <ReferenceLine y={0} stroke="var(--color-surface-border)" strokeDasharray="3 3" />
               <Tooltip
-                formatter={(_v: number, _name: string, props: any) => [
-                  formatAmount({ commodity: "$", quantity: props.payload.netWorth }),
-                  "Net Worth",
+                formatter={(v: number, name: string, props: any) => [
+                  formatAmount({ commodity: name, quantity: props.payload[name + "_abs"] as number }),
+                  name,
                 ]}
                 labelFormatter={formatXTick}
                 contentStyle={{
@@ -470,15 +522,22 @@ function NetWorthChart({
                   fontSize: "12px",
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="delta"
-                stroke="url(#netWorthStroke)"
-                strokeWidth={2}
-                fill="url(#netWorthFill)"
-                dot={false}
-                activeDot={{ r: 4, fill: "var(--color-text-primary)", strokeWidth: 0 }}
-              />
+              {visible.map((c) => {
+                const i = commodities.indexOf(c);
+                const [posColor] = COMMODITY_PALETTE[i % COMMODITY_PALETTE.length];
+                return (
+                  <Area
+                    key={c}
+                    type="monotone"
+                    dataKey={c}
+                    stroke={`url(#nwStroke${i})`}
+                    strokeWidth={2}
+                    fill={`url(#nwFill${i})`}
+                    dot={false}
+                    activeDot={{ r: 4, fill: posColor, strokeWidth: 0 }}
+                  />
+                );
+              })}
             </AreaChart>
           </ResponsiveContainer>
         </div>

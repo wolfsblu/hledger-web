@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatAmount, formatMixedAmount, formatDate, mergeNetWorthHistory } from "./format";
+import { formatAmount, formatMixedAmount, formatDate, mergeNetWorthHistory, mergeNetWorthByCommodity } from "./format";
 
 describe("formatAmount", () => {
   it("formats positive USD", () => {
@@ -95,5 +95,60 @@ describe("mergeNetWorthHistory", () => {
     expect(mergeNetWorthHistory(assets, [])).toEqual([
       { date: "2026-01-01", netWorth: 800 },
     ]);
+  });
+});
+
+describe("mergeNetWorthByCommodity", () => {
+  it("returns empty when both inputs empty", () => {
+    const r = mergeNetWorthByCommodity([], []);
+    expect(r.series).toEqual([]);
+    expect(r.commodities).toEqual([]);
+  });
+
+  it("merges single-commodity aligned dates", () => {
+    const assets = [
+      { date: "2026-01-01", balance: [{ commodity: "€", quantity: 1000 }] },
+      { date: "2026-02-01", balance: [{ commodity: "€", quantity: 1200 }] },
+    ];
+    const liabilities = [
+      { date: "2026-01-01", balance: [{ commodity: "€", quantity: -200 }] },
+      { date: "2026-02-01", balance: [{ commodity: "€", quantity: -300 }] },
+    ];
+    const r = mergeNetWorthByCommodity(assets, liabilities);
+    expect(r.commodities).toEqual(["€"]);
+    expect(r.series).toEqual([
+      { date: "2026-01-01", "€": 800 },
+      { date: "2026-02-01", "€": 900 },
+    ]);
+  });
+
+  it("forward-fills missing dates per commodity", () => {
+    const assets = [
+      { date: "2026-01-01", balance: [{ commodity: "€", quantity: 1000 }] },
+      { date: "2026-03-01", balance: [{ commodity: "€", quantity: 1500 }] },
+    ];
+    const liabilities = [
+      { date: "2026-02-01", balance: [{ commodity: "€", quantity: -200 }] },
+    ];
+    const r = mergeNetWorthByCommodity(assets, liabilities);
+    expect(r.series).toEqual([
+      { date: "2026-01-01", "€": 1000 },
+      { date: "2026-02-01", "€": 800 },
+      { date: "2026-03-01", "€": 1300 },
+    ]);
+  });
+
+  it("tracks multiple commodities independently", () => {
+    const assets = [
+      { date: "2026-01-01", balance: [{ commodity: "€", quantity: 1000 }, { commodity: "$", quantity: 500 }] },
+    ];
+    const liabilities = [
+      { date: "2026-01-01", balance: [{ commodity: "€", quantity: -200 }] },
+    ];
+    const r = mergeNetWorthByCommodity(assets, liabilities);
+    expect(r.commodities).toContain("€");
+    expect(r.commodities).toContain("$");
+    expect(r.series[0]["€"]).toBe(800);
+    expect(r.series[0]["$"]).toBe(500);
   });
 });

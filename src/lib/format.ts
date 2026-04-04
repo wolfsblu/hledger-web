@@ -73,3 +73,43 @@ export function mergeNetWorthHistory(
     return { date, netWorth: lastAsset + lastLiab };
   });
 }
+
+export function mergeNetWorthByCommodity(
+  assets: BalanceItem[],
+  liabilities: BalanceItem[]
+): { series: { date: string; [commodity: string]: number }[]; commodities: string[] } {
+  if (assets.length === 0 && liabilities.length === 0) return { series: [], commodities: [] };
+
+  const dateSet = new Set([...assets.map((b) => b.date), ...liabilities.map((b) => b.date)]);
+  const dates = Array.from(dateSet).sort();
+
+  const commoditySet = new Set<string>();
+  for (const b of [...assets, ...liabilities])
+    for (const a of b.balance) if (a.commodity) commoditySet.add(a.commodity);
+  const commodities = Array.from(commoditySet);
+
+  const buildMap = (items: BalanceItem[]) => {
+    const map = new Map<string, Map<string, number>>();
+    for (const b of items) {
+      const cMap = new Map<string, number>();
+      for (const a of b.balance) cMap.set(a.commodity, (cMap.get(a.commodity) ?? 0) + a.quantity);
+      map.set(b.date, cMap);
+    }
+    return map;
+  };
+
+  const assetMap = buildMap(assets);
+  const liabMap = buildMap(liabilities);
+  const lastAsset = new Map<string, number>(commodities.map((c) => [c, 0]));
+  const lastLiab = new Map<string, number>(commodities.map((c) => [c, 0]));
+
+  const series = dates.map((date) => {
+    if (assetMap.has(date)) for (const [c, q] of assetMap.get(date)!) lastAsset.set(c, q);
+    if (liabMap.has(date))  for (const [c, q] of liabMap.get(date)!)  lastLiab.set(c, q);
+    const entry: { date: string; [c: string]: number } = { date } as any;
+    for (const c of commodities) entry[c] = (lastAsset.get(c) ?? 0) + (lastLiab.get(c) ?? 0);
+    return entry;
+  });
+
+  return { series, commodities };
+}
