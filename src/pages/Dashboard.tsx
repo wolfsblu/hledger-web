@@ -248,7 +248,7 @@ function IncomeVsExpenses({ data }: { data: any }) {
 
 function SpendingByCategory({ rows }: { rows: any[] }) {
   const expenses = rows
-    .filter((r: any) => r.account && r.account !== "expenses")
+    .filter((r: any) => r.account?.includes(":"))
     .map((r: any) => ({
       name: r.account?.split(":").pop() ?? r.account,
       amount: Math.abs(r.amount?.[0]?.quantity ?? 0),
@@ -315,7 +315,7 @@ function IncomeBySource({ rows }: { rows: any[] }) {
   ];
 
   const sources = rows
-    .filter((r: any) => r.account && !["revenues", "revenue", "income"].includes(r.account))
+    .filter((r: any) => r.account?.includes(":"))
     .map((r: any) => ({
       name: r.account?.split(":").pop() ?? r.account,
       amount: Math.abs(r.amount?.[0]?.quantity ?? 0),
