@@ -40,3 +40,36 @@ export function formatMixedAmount(amounts: Amount[]): string {
 export function formatDate(dateStr: string): string {
   return format(parseISO(dateStr), "MMM d, yyyy");
 }
+
+export interface BalanceItem {
+  date: string;
+  balance: Amount[];
+}
+
+export function mergeNetWorthHistory(
+  assets: BalanceItem[],
+  liabilities: BalanceItem[]
+): { date: string; netWorth: number }[] {
+  if (assets.length === 0 && liabilities.length === 0) return [];
+
+  const dateSet = new Set([
+    ...assets.map((b) => b.date),
+    ...liabilities.map((b) => b.date),
+  ]);
+  const dates = Array.from(dateSet).sort();
+
+  const assetMap = new Map(assets.map((b) => [b.date, b.balance]));
+  const liabMap = new Map(liabilities.map((b) => [b.date, b.balance]));
+
+  const sumBalance = (bal: Amount[]): number =>
+    bal.reduce((acc, a) => acc + a.quantity, 0);
+
+  let lastAsset = 0;
+  let lastLiab = 0;
+
+  return dates.map((date) => {
+    if (assetMap.has(date)) lastAsset = sumBalance(assetMap.get(date)!);
+    if (liabMap.has(date)) lastLiab = sumBalance(liabMap.get(date)!);
+    return { date, netWorth: lastAsset + lastLiab };
+  });
+}
