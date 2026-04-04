@@ -13,12 +13,8 @@ vi.mock("./client", () => ({
 import client from "./client";
 import {
   useAccounts,
-  useAccountDetail,
-  useAccountBalance,
-  useAccountRegister,
   useTransactions,
   useBalanceSheet,
-  useIncomeStatement,
 } from "./hooks";
 
 const mockedClient = vi.mocked(client);

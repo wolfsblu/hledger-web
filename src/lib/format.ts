@@ -77,7 +77,7 @@ export function mergeNetWorthHistory(
 export function mergeNetWorthByCommodity(
   assets: BalanceItem[],
   liabilities: BalanceItem[]
-): { series: { date: string; [commodity: string]: number }[]; commodities: string[] } {
+): { series: { date: string; [commodity: string]: number | string }[]; commodities: string[] } {
   if (assets.length === 0 && liabilities.length === 0) return { series: [], commodities: [] };
 
   const dateSet = new Set([...assets.map((b) => b.date), ...liabilities.map((b) => b.date)]);
@@ -106,7 +106,7 @@ export function mergeNetWorthByCommodity(
   const series = dates.map((date) => {
     if (assetMap.has(date)) for (const [c, q] of assetMap.get(date)!) lastAsset.set(c, q);
     if (liabMap.has(date))  for (const [c, q] of liabMap.get(date)!)  lastLiab.set(c, q);
-    const entry: { date: string; [c: string]: number } = { date } as any;
+    const entry: { date: string; [c: string]: number | string } = { date };
     for (const c of commodities) entry[c] = (lastAsset.get(c) ?? 0) + (lastLiab.get(c) ?? 0);
     return entry;
   });

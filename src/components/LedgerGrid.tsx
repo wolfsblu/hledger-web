@@ -96,7 +96,7 @@ function LedgerRow<T>({
     ? "border-b border-[var(--color-surface-border)]"
     : "border-b border-[var(--color-surface-border-subtle)]/50";
   const bgClass = hovered ? "bg-[var(--color-surface-2)]/50" : "";
-  const cellBase = `py-3 transition-colors ${borderClass} ${bgClass}`;
+  const cellBase = `flex items-center py-3 transition-colors ${borderClass} ${bgClass}`;
   const handlers = expandable
     ? {
         onClick: () => setExpanded(e => !e),
@@ -110,7 +110,7 @@ function LedgerRow<T>({
     <>
       {expandable && (
         <div
-          className={`${cellBase} ${cursorClass} px-3 text-center text-[var(--color-text-tertiary)]`}
+          className={`${cellBase} ${cursorClass} justify-center px-3 text-[var(--color-text-tertiary)]`}
           {...handlers}
         >
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}

@@ -27,7 +27,7 @@ export default function Dashboard() {
 
   const toBalanceItems = (entries: NonNullable<ReturnType<typeof useAccountRegister>["data"]>["entries"]) => {
     // Keep only the last entry per date (end-of-day balance)
-    const byDate = new Map<string, typeof entries[number]>();
+    const byDate = new Map<string, NonNullable<typeof entries>[number]>();
     for (const e of entries ?? []) {
       if (e.date && e.balance) byDate.set(e.date, e);
     }
@@ -122,7 +122,7 @@ export default function Dashboard() {
           {incomeStatement.isLoading ? (
             <Shimmer className="h-52" />
           ) : incomeStatement.data ? (
-            <IncomeBySource rows={incomeStatement.data.revenues?.rows ?? incomeStatement.data.income?.rows ?? []} />
+            <IncomeBySource rows={incomeStatement.data.revenues?.rows ?? []} />
           ) : null}
         </StatCard>
 
@@ -434,7 +434,7 @@ function NetWorthChart({
   from,
   to,
 }: {
-  series: { date: string; [c: string]: number }[];
+  series: { date: string; [c: string]: number | string }[];
   commodities: string[];
   isLoading: boolean;
   from: string;
@@ -459,13 +459,13 @@ function NetWorthChart({
       : series;
 
   const baselines: Record<string, number> = {};
-  for (const c of commodities) baselines[c] = paddedSeries[0]?.[c] ?? 0;
+  for (const c of commodities) baselines[c] = (paddedSeries[0]?.[c] as number) ?? 0;
 
   const chartData = paddedSeries.map((p) => {
     const entry: Record<string, number | string> = { date: p.date };
     for (const c of commodities) {
-      entry[c] = p[c] - baselines[c];
-      entry[c + "_abs"] = p[c];
+      entry[c] = (p[c] as number) - baselines[c];
+      entry[c + "_abs"] = p[c] as number;
     }
     return entry;
   });
@@ -504,7 +504,7 @@ function NetWorthChart({
           <div className="flex flex-wrap items-center gap-1.5">
             {commodities.map((c, i) => {
               const base = baselines[c];
-              const last = paddedSeries[paddedSeries.length - 1]?.[c] ?? base;
+              const last = (paddedSeries[paddedSeries.length - 1]?.[c] as number) ?? base;
               const absDelta = last - base;
               const isUp = absDelta >= 0;
               const [posColor] = COMMODITY_PALETTE[i % COMMODITY_PALETTE.length];
@@ -586,11 +586,11 @@ function NetWorthChart({
               />
               <ReferenceLine y={0} stroke="var(--color-surface-border)" strokeDasharray="3 3" />
               <Tooltip
-                formatter={(v: number, name: string, props: any) => [
-                  formatAmount({ commodity: name, quantity: props.payload[name + "_abs"] as number }),
-                  name,
-                ]}
-                labelFormatter={formatXTick}
+                formatter={(_v, name, props: any) => {
+                  const key = String(name);
+                  return [formatAmount({ commodity: key, quantity: props.payload[key + "_abs"] as number }), key];
+                }}
+                labelFormatter={(label) => formatXTick(String(label))}
                 contentStyle={{
                   background: "var(--color-surface-2)",
                   border: "1px solid var(--color-surface-border)",

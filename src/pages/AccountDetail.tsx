@@ -101,7 +101,7 @@ export default function AccountDetail() {
                 tickLine={false}
               />
               <Tooltip
-                formatter={(v: number) => [`$${v.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, "Balance"]}
+                formatter={(v) => [`$${Number(v).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, "Balance"]}
                 contentStyle={{
                   background: "var(--color-surface-2)",
                   border: "1px solid var(--color-surface-border)",
