@@ -37,30 +37,26 @@ function PeriodNetWorthChange() {
 
   if (assets.isLoading || liabilities.isLoading || !assets.data || !liabilities.data) return null;
 
-  // Last entry per date → sorted list
-  const lastPerDate = (entries: NonNullable<typeof assets.data>["entries"]) => {
-    const byDate = new Map<string, typeof entries[number]>();
-    for (const e of entries ?? []) {
-      if (e.date && e.balance) byDate.set(e.date, e);
-    }
-    return Array.from(byDate.values()).sort((a, b) => a.date!.localeCompare(b.date!));
-  };
-
-  const assetEntries = lastPerDate(assets.data.entries);
-  const liabEntries = lastPerDate(liabilities.data.entries);
+  const assetEntries = assets.data.entries ?? [];
+  const liabEntries = liabilities.data.entries ?? [];
 
   if (assetEntries.length === 0 && liabEntries.length === 0) return null;
 
-  const nwAt = (aEntries: typeof assetEntries, lEntries: typeof assetEntries, idx: "first" | "last") => {
-    const pick = <T,>(arr: T[]) => idx === "first" ? arr[0] : arr[arr.length - 1];
-    const a = pick(aEntries)?.balance?.[0]?.quantity ?? 0;
-    const l = pick(lEntries)?.balance?.[0]?.quantity ?? 0;
-    return a - l;
+  // Historical end-of-period balance (liabilities are stored negative in hledger)
+  const lastBalance = (entries: typeof assetEntries) => {
+    const byDate = new Map<string, typeof entries[number]>();
+    for (const e of entries) if (e.date && e.balance) byDate.set(e.date, e);
+    const sorted = Array.from(byDate.values()).sort((a, b) => a.date!.localeCompare(b.date!));
+    return sorted[sorted.length - 1]?.balance?.[0]?.quantity ?? 0;
   };
 
-  const startNw = nwAt(assetEntries, liabEntries, "first");
-  const endNw = nwAt(assetEntries, liabEntries, "last");
-  const change = endNw - startNw;
+  // Sum of posting amounts in period = net flow for this account
+  const sumAmounts = (entries: typeof assetEntries) =>
+    entries.reduce((acc, e) => acc + (e.amount?.[0]?.quantity ?? 0), 0);
+
+  const endNw = lastBalance(assetEntries) + lastBalance(liabEntries);
+  const change = sumAmounts(assetEntries) + sumAmounts(liabEntries);
+  const startNw = endNw - change;
 
   if (change === 0) return null;
 
