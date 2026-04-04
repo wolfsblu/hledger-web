@@ -34,8 +34,15 @@ function PeriodNetWorthChange() {
   const { range } = useDateRange();
   const assets = useAccountRegister("assets", { from: range.from, to: range.to, limit: 10000 });
   const liabilities = useAccountRegister("liabilities", { from: range.from, to: range.to, limit: 10000 });
+  // Opening balance: all history up to (not including) the period start
+  const openingAssets = useAccountRegister("assets", { to: range.from, limit: 10000 });
+  const openingLiabilities = useAccountRegister("liabilities", { to: range.from, limit: 10000 });
 
-  if (assets.isLoading || liabilities.isLoading || !assets.data || !liabilities.data) return null;
+  if (
+    assets.isLoading || liabilities.isLoading ||
+    openingAssets.isLoading || openingLiabilities.isLoading ||
+    !assets.data || !liabilities.data
+  ) return null;
 
   const assetEntries = assets.data.entries ?? [];
   const liabEntries = liabilities.data.entries ?? [];
@@ -43,14 +50,15 @@ function PeriodNetWorthChange() {
   if (assetEntries.length === 0 && liabEntries.length === 0) return null;
 
   const commodity =
-    assetEntries[0]?.balance?.[0]?.commodity ??
-    liabEntries[0]?.balance?.[0]?.commodity ??
+    assetEntries[0]?.amount?.[0]?.commodity ??
+    liabEntries[0]?.amount?.[0]?.commodity ??
+    openingAssets.data?.entries?.[0]?.balance?.[0]?.commodity ??
     "$";
 
-  // Historical end-of-period balance for a single commodity (liabilities are stored negative in hledger)
-  const lastBalance = (entries: typeof assetEntries) => {
-    const byDate = new Map<string, typeof entries[number]>();
-    for (const e of entries) if (e.date && e.balance) byDate.set(e.date, e);
+  // Last balance entry for a set of register entries (used for pre-period historical balance)
+  const lastBalance = (entries: NonNullable<typeof openingAssets.data>["entries"] | undefined) => {
+    const byDate = new Map<string, NonNullable<typeof entries>[number]>();
+    for (const e of entries ?? []) if (e.date && e.balance) byDate.set(e.date, e);
     const sorted = Array.from(byDate.values()).sort((a, b) => a.date!.localeCompare(b.date!));
     return sorted[sorted.length - 1]?.balance?.find((a) => a.commodity === commodity)?.quantity ?? 0;
   };
@@ -59,13 +67,14 @@ function PeriodNetWorthChange() {
   const sumAmounts = (entries: typeof assetEntries) =>
     entries.reduce((acc, e) => acc + (e.amount?.find((a) => a.commodity === commodity)?.quantity ?? 0), 0);
 
-  const endNw = lastBalance(assetEntries) + lastBalance(liabEntries);
   const change = sumAmounts(assetEntries) + sumAmounts(liabEntries);
-  const startNw = endNw - change;
-
   if (change === 0) return null;
 
-  // Only show percentage when starting NW is large enough to be meaningful
+  // Opening net worth = last balance before the period started (true historical basis for percentage)
+  const startNw =
+    lastBalance(openingAssets.data?.entries) +
+    lastBalance(openingLiabilities.data?.entries);
+
   const pct = Math.abs(startNw) >= 1 ? Math.round((change / Math.abs(startNw)) * 100) : null;
   const isPositive = change >= 0;
 
