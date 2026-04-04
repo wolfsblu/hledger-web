@@ -107,7 +107,7 @@ export default function Dashboard() {
       </div>
 
       {/* Net Worth Over Time */}
-      <NetWorthChart series={netWorthSeries} isLoading={isNetWorthLoading} />
+      <NetWorthChart series={netWorthSeries} isLoading={isNetWorthLoading} from={range.from} to={range.to} />
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -329,21 +329,33 @@ function RecentTransactions({ data, isLoading }: { data: any[]; isLoading: boole
 function NetWorthChart({
   series,
   isLoading,
+  from,
+  to,
 }: {
   series: { date: string; netWorth: number }[];
   isLoading: boolean;
+  from: string;
+  to: string;
 }) {
-  const first = series[0]?.netWorth ?? 0;
-  const last = series[series.length - 1]?.netWorth ?? 0;
+  const paddedSeries =
+    series.length === 1
+      ? [
+          { date: from, netWorth: series[0].netWorth },
+          series[0],
+          { date: to, netWorth: series[0].netWorth },
+        ]
+      : series;
+
+  const first = paddedSeries[0]?.netWorth ?? 0;
+  const last = paddedSeries[paddedSeries.length - 1]?.netWorth ?? 0;
   const delta = last - first;
   const deltaPercent = first !== 0 ? (delta / Math.abs(first)) * 100 : 0;
   const isGain = delta >= 0;
-  const trendColor = isGain ? "var(--color-gain)" : "var(--color-loss)";
 
   const spanDays =
-    series.length >= 2
-      ? (new Date(series[series.length - 1].date).getTime() -
-          new Date(series[0].date).getTime()) /
+    paddedSeries.length >= 2
+      ? (new Date(paddedSeries[paddedSeries.length - 1].date).getTime() -
+          new Date(paddedSeries[0].date).getTime()) /
         (1000 * 60 * 60 * 24)
       : 0;
   const xTickFormat = spanDays > 180 ? "MMM yy" : "MMM d";
@@ -356,8 +368,13 @@ function NetWorthChart({
     });
   };
 
-  const baseline = series[0]?.netWorth ?? 0;
-  const deltaSeries = series.map((p) => ({ ...p, delta: p.netWorth - baseline }));
+  const baseline = paddedSeries[0]?.netWorth ?? 0;
+  const deltaSeries = paddedSeries.map((p) => ({ ...p, delta: p.netWorth - baseline }));
+
+  const maxDelta = Math.max(...deltaSeries.map((p) => p.delta), 0);
+  const minDelta = Math.min(...deltaSeries.map((p) => p.delta), 0);
+  const deltaSpan = maxDelta - minDelta;
+  const zeroOffset = deltaSpan > 0 ? `${((maxDelta / deltaSpan) * 100).toFixed(2)}%` : "0%";
 
   const formatYTick = (v: number) => {
     if (v === 0) return "$0";
@@ -373,7 +390,7 @@ function NetWorthChart({
       title="Net Worth Over Time"
       stretch
       headerAction={
-        !isLoading && series.length >= 2 ? (
+        !isLoading && paddedSeries.length >= 2 ? (
           <span
             className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-medium ${
               isGain
@@ -392,7 +409,7 @@ function NetWorthChart({
     >
       {isLoading ? (
         <Shimmer className="h-52" />
-      ) : series.length === 0 ? (
+      ) : paddedSeries.length === 0 ? (
         <p className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
           No data for this period.
         </p>
@@ -401,9 +418,17 @@ function NetWorthChart({
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={deltaSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
-                <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={trendColor} stopOpacity={0.25} />
-                  <stop offset="95%" stopColor={trendColor} stopOpacity={0} />
+                <linearGradient id="netWorthFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"         stopColor="var(--color-gain)" stopOpacity={0.25} />
+                  <stop offset={zeroOffset} stopColor="var(--color-gain)" stopOpacity={0.02} />
+                  <stop offset={zeroOffset} stopColor="var(--color-loss)" stopOpacity={0.02} />
+                  <stop offset="100%"       stopColor="var(--color-loss)" stopOpacity={0.25} />
+                </linearGradient>
+                <linearGradient id="netWorthStroke" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"         stopColor="var(--color-gain)" stopOpacity={1} />
+                  <stop offset={zeroOffset} stopColor="var(--color-gain)" stopOpacity={1} />
+                  <stop offset={zeroOffset} stopColor="var(--color-loss)" stopOpacity={1} />
+                  <stop offset="100%"       stopColor="var(--color-loss)" stopOpacity={1} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -448,11 +473,11 @@ function NetWorthChart({
               <Area
                 type="monotone"
                 dataKey="delta"
-                stroke={trendColor}
+                stroke="url(#netWorthStroke)"
                 strokeWidth={2}
-                fill="url(#netWorthGradient)"
+                fill="url(#netWorthFill)"
                 dot={false}
-                activeDot={{ r: 4, fill: trendColor, strokeWidth: 0 }}
+                activeDot={{ r: 4, fill: "var(--color-text-primary)", strokeWidth: 0 }}
               />
             </AreaChart>
           </ResponsiveContainer>
