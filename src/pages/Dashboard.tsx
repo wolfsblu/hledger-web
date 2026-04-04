@@ -1,9 +1,5 @@
 import { useState } from "react";
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -110,14 +106,23 @@ export default function Dashboard() {
       {/* Net Worth Over Time */}
       <NetWorthChart series={netWorthSeries} commodities={netWorthCommodities} isLoading={isNetWorthLoading} from={range.from} to={range.to} />
 
-      {/* Charts row */}
+      {/* Income vs Expenses — full width */}
+      <StatCard title="Income vs Expenses">
+        {incomeStatement.isLoading ? (
+          <Shimmer className="h-52" />
+        ) : incomeStatement.data ? (
+          <IncomeVsExpenses data={incomeStatement.data} />
+        ) : null}
+      </StatCard>
+
+      {/* Dynamic pair: income sources + spending by category */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Income vs Expenses */}
-        <StatCard title="Income vs Expenses" stretch>
+        {/* Top Income Sources */}
+        <StatCard title="Top Income Sources">
           {incomeStatement.isLoading ? (
             <Shimmer className="h-52" />
           ) : incomeStatement.data ? (
-            <IncomeVsExpenses data={incomeStatement.data} />
+            <IncomeBySource rows={incomeStatement.data.revenues?.rows ?? incomeStatement.data.income?.rows ?? []} />
           ) : null}
         </StatCard>
 
@@ -164,62 +169,78 @@ function IncomeVsExpenses({ data }: { data: any }) {
   const commodity = incomeTotals[0]?.commodity ?? expenseTotals[0]?.commodity ?? "$";
   const income = Math.abs(incomeTotals[0]?.quantity ?? 0);
   const expenses = Math.abs(expenseTotals[0]?.quantity ?? 0);
-  const chartData = [{ name: "Period", Income: income, Expenses: expenses }];
   const net = income - expenses;
-
   const fmt = (v: number) => formatAmount({ commodity, quantity: v });
-  const fmtAxis = (v: number) => {
-    const abs = Math.abs(v);
-    const sym = commodity === "$" || commodity === "USD" ? "$" : commodity + " ";
-    if (abs >= 1_000_000) return `${sym}${(abs / 1_000_000).toFixed(1)}M`;
-    if (abs >= 1_000) return `${sym}${(abs / 1_000).toFixed(0)}k`;
-    return fmt(v);
-  };
+
+  const isDeficit = expenses > income;
+  const hasData = income > 0 || expenses > 0;
+  const savingsPct = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0;
+  const overPct = income > 0 ? Math.round(((expenses - income) / income) * 100) : 0;
+  const spentPct = income > 0 ? Math.min(Math.round((expenses / income) * 100), 100) : 0;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1" style={{ minHeight: 160 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} barGap={12}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-border-subtle)" vertical={false} />
-          <XAxis dataKey="name" tick={false} axisLine={false} />
-          <YAxis
-            tickFormatter={fmtAxis}
-            fontSize={11}
-            fontFamily="var(--font-mono)"
-            tick={{ fill: "var(--color-text-tertiary)" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip
-            cursor={{ fill: "var(--color-accent-glow)" }}
-            formatter={(v: number) => [fmt(v), undefined]}
-            contentStyle={{
-              background: "var(--color-surface-2)",
-              border: "1px solid var(--color-surface-border)",
-              borderRadius: "8px",
-              fontFamily: "var(--font-mono)",
-              fontSize: "12px",
-            }}
-          />
-          <Bar dataKey="Income" fill="var(--color-gain)" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="Expenses" fill="var(--color-loss)" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="flex flex-col gap-6">
+      {/* Hero metric */}
+      <div className="flex items-baseline gap-2">
+        {!hasData ? (
+          <span className="font-mono text-4xl font-semibold leading-none tracking-tight text-[var(--color-text-tertiary)]">—</span>
+        ) : isDeficit ? (
+          <>
+            <span className="font-mono text-4xl font-semibold leading-none tracking-tight text-[var(--color-loss)]">
+              +{overPct}%
+            </span>
+            <span className="text-sm text-[var(--color-text-tertiary)]">over income</span>
+          </>
+        ) : (
+          <>
+            <span className="font-mono text-4xl font-semibold leading-none tracking-tight text-[var(--color-gain)]">
+              {savingsPct}%
+            </span>
+            <span className="text-sm text-[var(--color-text-tertiary)]">savings rate</span>
+          </>
+        )}
       </div>
-      <div className="mt-3 flex shrink-0 items-center gap-3">
-        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-medium ${net >= 0 ? "bg-[var(--color-gain-dim)] text-[var(--color-gain)]" : "bg-[var(--color-loss-dim)] text-[var(--color-loss)]"}`}>
-          {net >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          {net >= 0 ? "+" : ""}{fmt(net)} net
-        </span>
-        <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-tertiary)]">
-          <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-gain)]" />
-          Income: {fmt(income)}
-        </span>
-        <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-tertiary)]">
-          <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-loss)]" />
-          Expenses: {fmt(expenses)}
-        </span>
+
+      {/* Segmented progress bar: red = spent, green = saved */}
+      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
+        {hasData && (
+          isDeficit ? (
+            <div className="h-full w-full rounded-full bg-[var(--color-loss)]" />
+          ) : (
+            <div className="flex h-full gap-px">
+              <div
+                className="h-full rounded-l-full transition-all duration-700"
+                style={{ width: `${spentPct}%`, backgroundColor: "var(--color-loss)" }}
+              />
+              <div
+                className="h-full flex-1 rounded-r-full transition-all duration-700"
+                style={{ backgroundColor: "var(--color-gain)" }}
+              />
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Three-column stats */}
+      <div className="grid grid-cols-3">
+        <div>
+          <div className="text-xs text-[var(--color-text-tertiary)]">Income</div>
+          <div className="mt-1 font-mono text-sm font-semibold text-[var(--color-gain)]">
+            {income > 0 ? fmt(income) : "—"}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs text-[var(--color-text-tertiary)]">Net</div>
+          <div className={`mt-1 font-mono text-sm font-semibold ${net >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
+            {hasData ? `${net >= 0 ? "+" : ""}${fmt(net)}` : "—"}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs text-[var(--color-text-tertiary)]">Expenses</div>
+          <div className="mt-1 font-mono text-sm font-semibold text-[var(--color-loss)]">
+            {expenses > 0 ? fmt(expenses) : "—"}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -271,6 +292,62 @@ function SpendingByCategory({ rows }: { rows: any[] }) {
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${(exp.amount / max) * 100}%`,
+                backgroundColor: colors[i % colors.length],
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function IncomeBySource({ rows }: { rows: any[] }) {
+  const colors = [
+    "var(--color-chart-1)",
+    "var(--color-chart-2)",
+    "var(--color-chart-3)",
+    "var(--color-chart-4)",
+    "var(--color-chart-5)",
+    "var(--color-accent-dim)",
+    "var(--color-gain)",
+    "var(--color-loss)",
+  ];
+
+  const sources = rows
+    .filter((r: any) => r.account && r.account !== "revenues" && r.account !== "income")
+    .map((r: any) => ({
+      name: r.account?.split(":").pop() ?? r.account,
+      amount: Math.abs(r.amount?.[0]?.quantity ?? 0),
+      commodity: r.amount?.[0]?.commodity ?? "$",
+    }))
+    .filter((r) => r.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 8);
+
+  if (sources.length === 0) {
+    return <p className="py-8 text-center text-sm text-[var(--color-text-tertiary)]">No income data found.</p>;
+  }
+
+  const max = sources[0]?.amount ?? 1;
+
+  return (
+    <div className="space-y-3">
+      {sources.map((src, i) => (
+        <div key={src.name} className="group">
+          <div className="mb-1 flex items-center justify-between text-sm">
+            <span className="text-[var(--color-text-secondary)] transition-colors group-hover:text-[var(--color-text-primary)]">
+              {src.name}
+            </span>
+            <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
+              {formatAmount({ commodity: src.commodity, quantity: src.amount })}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${(src.amount / max) * 100}%`,
                 backgroundColor: colors[i % colors.length],
               }}
             />
