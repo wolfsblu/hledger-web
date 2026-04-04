@@ -343,11 +343,11 @@ function RecentTransactions({ data, isLoading }: { data: any[]; isLoading: boole
 // Negative = below zero (warm tones — never green/teal)
 // No two commodities share any color
 const COMMODITY_PALETTE: [string, string][] = [
-  ["#60a5fa", "#fb923c"], // blue      / orange
-  ["#a78bfa", "#f472b6"], // violet    / pink
-  ["#34d399", "#fbbf24"], // emerald   / amber  — green is fine as positive, amber ≠ red
-  ["#22d3ee", "#f87171"], // cyan      / coral-red
-  ["#818cf8", "#e879f9"], // indigo    / fuchsia
+  ["var(--color-gain)", "var(--color-loss)"], // green     / red  (default)
+  ["#60a5fa", "#fb923c"],                     // blue      / orange
+  ["#a78bfa", "#f472b6"],                     // violet    / pink
+  ["#22d3ee", "#fbbf24"],                     // cyan      / amber
+  ["#818cf8", "#e879f9"],                     // indigo    / fuchsia
 ];
 
 function NetWorthChart({
