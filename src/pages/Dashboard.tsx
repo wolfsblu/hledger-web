@@ -315,7 +315,7 @@ function IncomeBySource({ rows }: { rows: any[] }) {
   ];
 
   const sources = rows
-    .filter((r: any) => r.account && r.account !== "revenues" && r.account !== "income")
+    .filter((r: any) => r.account && !["revenues", "revenue", "income"].includes(r.account))
     .map((r: any) => ({
       name: r.account?.split(":").pop() ?? r.account,
       amount: Math.abs(r.amount?.[0]?.quantity ?? 0),
