@@ -27,7 +27,8 @@ Before starting the development server, ensure hledger is installed and the API 
 | npm run dev | Starts the local development server |
 | npm run build | Compiles the application for production |
 | npm run preview | Previews the production build locally |
-| npm run generate-types | Fetches the OpenAPI schema and generates types |
+| npm run openapi:download | Fetches the OpenAPI schema from a locally running hledger-api server |
+| npm run openapi:generate | Generate Typescript definitions based on OpenAPI schema |
 | npm run lint | Runs code quality checks with ESLint |
 | npm test | Executes the test suite with Vitest |
 
