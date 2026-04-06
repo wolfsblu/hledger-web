@@ -1,10 +1,11 @@
 import { useState, useMemo, Fragment } from "react";
-import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, MessageSquare, ArrowUpDown, ArrowUp, ArrowDown, Plus } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, MessageSquare, ArrowUpDown, ArrowUp, ArrowDown, Plus, Upload } from "lucide-react";
 import { useTransactions } from "../api/hooks";
 import { useDateRange } from "../context/DateRangeContext";
 import { formatMixedAmount } from "../lib/format";
 import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
 import NewTransactionDrawer from "../components/NewTransactionDrawer";
+import ImportDrawer from "../components/ImportDrawer";
 
 const PAGE_SIZE = 50;
 
@@ -15,6 +16,7 @@ export default function Transactions() {
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useMemo(() => {
     const timer = setTimeout(() => {
@@ -78,7 +80,12 @@ export default function Transactions() {
       headerClass: "px-4",
       cellClass: "min-w-0 px-4 font-medium text-[var(--color-text-primary)]",
       render: (txn) => (
-        <span className="block truncate" title={txn.description}>{txn.description}</span>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate" title={txn.description}>{txn.description}</span>
+          {txn.comment && (
+            <MessageSquare size={12} className="shrink-0 text-[var(--color-text-tertiary)]" title={txn.comment} />
+          )}
+        </div>
       ),
     },
     {
@@ -110,6 +117,7 @@ export default function Transactions() {
   return (
     <>
     <NewTransactionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    <ImportDrawer open={importOpen} onClose={() => setImportOpen(false)} />
     <div className="stagger-children space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -118,13 +126,22 @@ export default function Transactions() {
             {range.label} &middot; {total > 0 ? `${total} transactions` : "No results"}
           </p>
         </div>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-dim)]"
-        >
-          <Plus size={14} />
-          New
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={() => setImportOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-surface-border)] px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)] sm:px-4"
+          >
+            <Upload size={14} />
+            <span className="hidden sm:inline">Import</span>
+          </button>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-dim)] sm:px-4"
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">New</span>
+          </button>
+        </div>
       </div>
 
       <div className="relative">

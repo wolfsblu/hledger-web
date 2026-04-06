@@ -116,6 +116,47 @@ export function useCreateTransaction() {
   });
 }
 
+export function useImportRules() {
+  return useQuery({
+    queryKey: ["import-rules"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/api/v1/transactions/import/rules", {});
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useImportCsv() {
+  return useMutation({
+    mutationFn: async ({ rules, file, dryRun }: { rules: string; file: File; dryRun?: boolean }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const url = `/api/v1/transactions/import/${encodeURIComponent(rules)}${dryRun ? "?dryRun=true" : ""}`;
+      const response = await fetch(url, { method: "POST", body: formData });
+      if (!response.ok) {
+        if (response.status === 404) throw new Error(`Rules file "${rules}" not found`);
+        throw new Error("Import failed");
+      }
+      return response.json() as Promise<components["schemas"]["ImportResponse"]>;
+    },
+  });
+}
+
+export function useBulkCreateTransactions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: components["schemas"]["CreateTransactionRequest"][]) => {
+      const { data, error } = await client.POST("/api/v1/transactions/bulk", { body });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
 export function useBalanceSheet(params: { date?: string; depth?: number }) {
   return useQuery({
     queryKey: ["balance-sheet", params],
