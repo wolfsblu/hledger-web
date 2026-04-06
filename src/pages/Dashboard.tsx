@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -21,9 +21,10 @@ export default function Dashboard() {
   const { range } = useDateRange();
   const balanceSheet = useBalanceSheet({});
   const incomeStatement = useIncomeStatement({ from: range.from, to: range.to, depth: 2 });
-  const recentTxns = useTransactions({ limit: 10 });
+  const recentTxns = useTransactions({ from: range.from, to: range.to, limit: 10 });
   const assetsRegister = useAccountRegister("assets", { from: range.from, to: range.to, limit: 10000 });
   const liabilitiesRegister = useAccountRegister("liabilities", { from: range.from, to: range.to, limit: 10000 });
+  const expensesRegister = useAccountRegister("expenses", { from: range.from, to: range.to, limit: 10000 });
 
   const toBalanceItems = (entries: NonNullable<ReturnType<typeof useAccountRegister>["data"]>["entries"]) => {
     // Keep only the last entry per date (end-of-day balance)
@@ -39,6 +40,32 @@ export default function Dashboard() {
     toBalanceItems(liabilitiesRegister.data?.entries)
   );
   const isNetWorthLoading = assetsRegister.isLoading || liabilitiesRegister.isLoading;
+
+  const { dailySpend, txnCountByDate, spendCommodity } = useMemo(() => {
+    const entries = expensesRegister.data?.entries ?? [];
+    const txnCountByDate = new Map<string, number>();
+    for (const e of entries) {
+      if (e.date) txnCountByDate.set(e.date, (txnCountByDate.get(e.date) ?? 0) + 1);
+    }
+    // End-of-day cumulative balance per date
+    const balanceByDate = new Map<string, number>();
+    let spendCommodity = "$";
+    for (const e of entries) {
+      if (e.date && e.balance && e.balance.length > 0) {
+        spendCommodity = e.balance[0].commodity ?? "$";
+        balanceByDate.set(e.date, e.balance[0].quantity ?? 0);
+      }
+    }
+    // Daily delta from cumulative balance
+    const sorted = Array.from(balanceByDate.entries()).sort(([a], [b]) => (a < b ? -1 : 1));
+    const dailySpend = new Map<string, number>();
+    for (let i = 0; i < sorted.length; i++) {
+      const [date, bal] = sorted[i];
+      const prev = i > 0 ? sorted[i - 1][1] : 0;
+      dailySpend.set(date, Math.abs(bal - prev));
+    }
+    return { dailySpend, txnCountByDate, spendCommodity };
+  }, [expensesRegister.data]);
 
   return (
     <div className="stagger-children space-y-8">
@@ -106,14 +133,25 @@ export default function Dashboard() {
       {/* Net Worth Over Time */}
       <NetWorthChart series={netWorthSeries} commodities={netWorthCommodities} isLoading={isNetWorthLoading} from={range.from} to={range.to} />
 
-      {/* Income vs Expenses — full width */}
-      <StatCard title="Income vs Expenses">
-        {incomeStatement.isLoading ? (
-          <Shimmer className="h-52" />
-        ) : incomeStatement.data ? (
-          <IncomeVsExpenses data={incomeStatement.data} />
-        ) : null}
-      </StatCard>
+      {/* Income vs Expenses + Spending Calendar — 2 columns */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <StatCard title="Income vs Expenses">
+          {incomeStatement.isLoading ? (
+            <Shimmer className="h-52" />
+          ) : incomeStatement.data ? (
+            <IncomeVsExpenses data={incomeStatement.data} />
+          ) : null}
+        </StatCard>
+
+        <SpendingCalendar
+          from={range.from}
+          to={range.to}
+          dailySpend={dailySpend}
+          txnCountByDate={txnCountByDate}
+          commodity={spendCommodity}
+          isLoading={expensesRegister.isLoading}
+        />
+      </div>
 
       {/* Dynamic pair: income sources + spending by category */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -151,7 +189,7 @@ export default function Dashboard() {
         }
       >
         <RecentTransactions
-          data={recentTxns.data?.data?.flat() ?? []}
+          data={(recentTxns.data?.data?.flat() ?? []).sort((a, b) => b.date < a.date ? -1 : b.date > a.date ? 1 : 0)}
           isLoading={recentTxns.isLoading}
         />
       </StatCard>
@@ -412,6 +450,277 @@ function RecentTransactions({ data, isLoading }: { data: any[]; isLoading: boole
       isLoading={isLoading}
       emptyMessage="No transactions found."
     />
+  );
+}
+
+// ── Spending Calendar ─────────────────────────────────────────────────────────
+
+const MIN_CALENDAR_WEEKS = 53;
+
+/** Returns ISO date strings (YYYY-MM-DD) for each week (Mon–Sun) covering [from, to],
+ *  padded symmetrically to at least MIN_CALENDAR_WEEKS. */
+function buildCalendarWeeks(from: string, to: string): string[][] {
+  const startDate = new Date(from + "T00:00:00");
+  const endDate = new Date(to + "T00:00:00");
+  // Align to Monday
+  const dow = startDate.getDay();
+  const daysBack = dow === 0 ? 6 : dow - 1;
+  const cursor = new Date(startDate);
+  cursor.setDate(cursor.getDate() - daysBack);
+
+  const weeks: string[][] = [];
+  while (cursor <= endDate) {
+    const week: string[] = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(cursor.toISOString().slice(0, 10));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  // Pad symmetrically if fewer than minimum weeks
+  if (weeks.length < MIN_CALENDAR_WEEKS) {
+    const extra = MIN_CALENDAR_WEEKS - weeks.length;
+    const extraAfter = Math.floor(extra / 2);
+    const extraBefore = extra - extraAfter;
+
+    // Prepend weeks before
+    const first = new Date(weeks[0][0] + "T00:00:00");
+    for (let w = 0; w < extraBefore; w++) {
+      first.setDate(first.getDate() - 7);
+      const week: string[] = [];
+      const d = new Date(first);
+      for (let i = 0; i < 7; i++) {
+        week.push(d.toISOString().slice(0, 10));
+        d.setDate(d.getDate() + 1);
+      }
+      weeks.unshift(week);
+    }
+
+    // Append weeks after
+    const last = new Date(weeks[weeks.length - 1][6] + "T00:00:00");
+    for (let w = 0; w < extraAfter; w++) {
+      last.setDate(last.getDate() + 1);
+      const week: string[] = [];
+      const d = new Date(last);
+      for (let i = 0; i < 7; i++) {
+        week.push(d.toISOString().slice(0, 10));
+        d.setDate(d.getDate() + 1);
+      }
+      last.setDate(last.getDate() + 6);
+      weeks.push(week);
+    }
+  }
+
+  return weeks;
+}
+
+// SVG layout constants (in SVG user units)
+const CAL_CELL = 10;
+const CAL_GAP  = 2;
+const CAL_STEP = CAL_CELL + CAL_GAP; // 12
+const CAL_DAY_W   = 20; // width reserved for M/W/F labels
+const CAL_MON_H   = 14; // height reserved for month labels
+
+function SpendingCalendar({
+  from,
+  to,
+  dailySpend,
+  txnCountByDate,
+  commodity,
+  isLoading,
+}: {
+  from: string;
+  to: string;
+  dailySpend: Map<string, number>;
+  txnCountByDate: Map<string, number>;
+  commodity: string;
+  isLoading: boolean;
+}) {
+  // All years spanned by the date range
+  const years = useMemo(() => {
+    const fromYear = parseInt(from.slice(0, 4));
+    const toYear = parseInt(to.slice(0, 4));
+    const result: number[] = [];
+    for (let y = fromYear; y <= toYear; y++) result.push(y);
+    return result;
+  }, [from, to]);
+
+  const [selectedYear, setSelectedYear] = useState<number>(() => parseInt(to.slice(0, 4)));
+
+  // When date range changes, reset to the most recent year
+  useEffect(() => {
+    setSelectedYear(parseInt(to.slice(0, 4)));
+  }, [from, to]);
+
+  // Always show the full selected year (Jan 1 – Dec 31)
+  const yearFrom = `${selectedYear}-01-01`;
+  const yearTo   = `${selectedYear}-12-31`;
+  const allWeeks = useMemo(() => buildCalendarWeeks(yearFrom, yearTo), [yearFrom, yearTo]);
+
+  // Active range clipped to the selected year
+  const activeFrom = from > yearFrom ? from : yearFrom;
+  const activeTo   = to   < yearTo   ? to   : yearTo;
+
+  const weeks = allWeeks;
+
+  // Quintile-based intensity buckets
+  const getCellLevel = useMemo(() => {
+    const amounts = Array.from(dailySpend.values())
+      .filter((v) => v > 0)
+      .sort((a, b) => a - b);
+    return (date: string): 0 | 1 | 2 | 3 | 4 => {
+      const spend = dailySpend.get(date);
+      if (!spend || spend === 0 || amounts.length === 0) return 0;
+      const rank = amounts.filter((v) => v <= spend).length / amounts.length;
+      if (rank <= 0.25) return 1;
+      if (rank <= 0.5) return 2;
+      if (rank <= 0.75) return 3;
+      return 4;
+    };
+  }, [dailySpend]);
+
+  const levelPct = [0, 18, 38, 62, 88] as const;
+
+  const numWeeks = weeks.length;
+  const svgW = CAL_DAY_W + numWeeks * CAL_STEP - CAL_GAP;
+  const svgH = CAL_MON_H + 7 * CAL_STEP - CAL_GAP;
+
+  const cellFill = (inRange: boolean, level: 0 | 1 | 2 | 3 | 4) => {
+    if (!inRange) return "color-mix(in srgb, var(--color-surface-3) 35%, transparent)";
+    if (level === 0) return "var(--color-surface-3)";
+    return `color-mix(in srgb, var(--color-loss) ${levelPct[level]}%, var(--color-surface-3))`;
+  };
+
+  const yearPicker = years.length > 1 ? (
+    <div className="flex gap-px rounded-md border border-[var(--color-surface-border)] overflow-hidden">
+      {years.map(y => (
+        <button
+          key={y}
+          onClick={() => setSelectedYear(y)}
+          className={`px-2 py-0.5 font-mono text-[10px] transition-colors ${
+            y === selectedYear
+              ? "bg-[var(--color-surface-3)] text-[var(--color-text-primary)]"
+              : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
+          }`}
+        >
+          {y}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
+  return (
+    <StatCard title="Spending Activity" headerAction={yearPicker}>
+      <div className="overflow-x-auto">
+      {isLoading ? (
+        <Shimmer className="h-24 w-full" />
+      ) : (
+        <>
+          {/* SVG grid — fixed pixel size, scrolls horizontally on small screens */}
+          <svg
+            className="spending-calendar block"
+            viewBox={`0 0 ${svgW} ${svgH}`}
+            width="100%"
+            style={{ minWidth: svgW }}
+          >
+            {/* Month labels — skip if < 3 weeks since last label to avoid overlap */}
+            {(() => {
+              let lastLabelWi = -4;
+              return weeks.map((week, wi) => {
+                const first = week[0];
+                const prev = wi > 0 ? weeks[wi - 1][0] : null;
+                const isNewMonth = !prev || first.slice(5, 7) !== prev.slice(5, 7);
+                const farEnough = wi - lastLabelWi >= 3;
+                if (!isNewMonth || !farEnough) return null;
+                lastLabelWi = wi;
+                return (
+                  <text
+                    key={`m-${wi}`}
+                    x={CAL_DAY_W + wi * CAL_STEP}
+                    y={CAL_MON_H - 3}
+                    fontSize={8}
+                    fontFamily="var(--font-mono)"
+                    fill="var(--color-text-tertiary)"
+                  >
+                    {new Date(first + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}
+                  </text>
+                );
+              });
+            })()}
+
+            {/* Day-of-week labels: M, W, F */}
+            {([0, 2, 4] as const).map((di) => (
+              <text
+                key={`d-${di}`}
+                x={CAL_DAY_W - 3}
+                y={CAL_MON_H + di * CAL_STEP + CAL_CELL / 2}
+                fontSize={8}
+                fontFamily="var(--font-mono)"
+                fill="var(--color-text-tertiary)"
+                textAnchor="end"
+                dominantBaseline="middle"
+              >
+                {["M", "W", "F"][di / 2]}
+              </text>
+            ))}
+
+            {/* Cells */}
+            {weeks.map((week, wi) =>
+              week.map((date, di) => {
+                const inRange = date >= activeFrom && date <= activeTo;
+                const level = inRange ? getCellLevel(date) : 0;
+                const spend = dailySpend.get(date) ?? 0;
+                const count = txnCountByDate.get(date) ?? 0;
+                const dateLabel = new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                });
+                const tooltip = inRange
+                  ? spend > 0
+                    ? `${dateLabel} · ${formatAmount({ commodity, quantity: spend })} · ${count} txn${count !== 1 ? "s" : ""}`
+                    : `${dateLabel} · no spending`
+                  : "";
+
+                return (
+                  <rect
+                    key={date}
+                    x={CAL_DAY_W + wi * CAL_STEP}
+                    y={CAL_MON_H + di * CAL_STEP}
+                    width={CAL_CELL}
+                    height={CAL_CELL}
+                    rx={1.5}
+                    fill={cellFill(inRange, level)}
+                    data-active={inRange ? "" : undefined}
+                  >
+                    {tooltip && <title>{tooltip}</title>}
+                  </rect>
+                );
+              })
+            )}
+          </svg>
+
+          {/* Legend */}
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-[9px] text-[var(--color-text-tertiary)]">less</span>
+            {([0, 1, 2, 3, 4] as const).map((lvl) => (
+              <div
+                key={lvl}
+                className="h-2 w-2 rounded-[2px]"
+                style={{
+                  backgroundColor:
+                    lvl === 0
+                      ? "var(--color-surface-3)"
+                      : `color-mix(in srgb, var(--color-loss) ${levelPct[lvl]}%, var(--color-surface-3))`,
+                }}
+              />
+            ))}
+            <span className="font-mono text-[9px] text-[var(--color-text-tertiary)]">more</span>
+          </div>
+        </>
+      )}
+      </div>
+    </StatCard>
   );
 }
 

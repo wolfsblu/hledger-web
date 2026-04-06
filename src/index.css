@@ -180,6 +180,12 @@ body::before {
 .stagger-children > *:nth-child(7) { animation-delay: 360ms; }
 .stagger-children > *:nth-child(8) { animation-delay: 420ms; }
 
+/* Spending calendar cell hover */
+.spending-calendar rect[data-active]:hover {
+  opacity: 0.7;
+  cursor: default;
+}
+
 /* Table row hover */
 .ledger-row {
   transition: background-color 0.15s ease;
