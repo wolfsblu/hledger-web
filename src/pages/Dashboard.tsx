@@ -428,7 +428,7 @@ const recentTxnColumns: ColumnDef<any>[] = [
     header: "Amount",
     width: "max-content",
     headerClass: "px-4 text-right",
-    cellClass: "px-4 text-right font-mono text-xs font-medium",
+    cellClass: "px-4 justify-end font-mono text-xs font-medium",
     render: (txn) => {
       const p = txn.postings?.[0];
       const qty = p?.amount?.[0]?.quantity ?? 0;
