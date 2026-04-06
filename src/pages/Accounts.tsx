@@ -33,8 +33,8 @@ export default function Accounts() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-1)]">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-1)]">
+        <table className="w-full min-w-[400px] text-sm">
           <thead>
             <tr className="border-b border-[var(--color-surface-border)]">
               <th className="px-5 py-3.5 text-left font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
@@ -103,12 +103,12 @@ function AccountSection({ parent, children }: { parent: any; children: any[] }) 
               key={child.fullName}
               className="ledger-row border-b border-[var(--color-surface-border-subtle)]/50"
             >
-              <td className="py-2.5 pr-4" style={{ paddingLeft: `${1.25 + child.depth * 1.25}rem` }}>
+              <td className="py-2.5 pr-4" style={{ paddingLeft: `${(child.depth - 2) * 1.25 + 1.25}rem` }}>
                 <Link
                   to={`/accounts/${encodeURIComponent(child.fullName)}`}
                   className="group/link inline-flex items-center gap-1.5 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-accent)]"
                 >
-                  <span className="border-l border-[var(--color-surface-border)] pl-3">
+                  <span className={child.depth > 2 ? "border-l border-[var(--color-surface-border)] pl-3" : ""}>
                     {child.name}
                   </span>
                   <ExternalLink size={10} className="opacity-0 transition-opacity group-hover/link:opacity-100" />

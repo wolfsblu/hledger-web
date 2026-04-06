@@ -701,7 +701,7 @@ function SpendingCalendar({
           </svg>
 
           {/* Legend */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-end gap-1.5 mt-2">
             <span className="font-mono text-[9px] text-[var(--color-text-tertiary)]">less</span>
             {([0, 1, 2, 3, 4] as const).map((lvl) => (
               <div
