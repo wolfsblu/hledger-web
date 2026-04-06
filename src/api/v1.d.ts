@@ -331,7 +331,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    dryRun?: boolean;
+                };
                 header?: never;
                 path: {
                     rules: string;
@@ -355,8 +357,60 @@ export interface paths {
                         "application/json;charset=utf-8": components["schemas"]["ImportResponse"];
                     };
                 };
+                /** @description Invalid `dryRun` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description `rules` not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transactions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json;charset=utf-8": components["schemas"]["CreateTransactionRequest"][];
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json;charset=utf-8": components["schemas"]["Transaction"][];
+                    };
+                };
+                /** @description Invalid `body` */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
