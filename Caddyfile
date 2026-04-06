@@ -1,0 +1,8 @@
+:80
+
+root * /srv
+file_server
+
+reverse_proxy /api/* {$HLEDGER_API_URL:http://hledger-api:8080}
+
+try_files {path} /index.html
