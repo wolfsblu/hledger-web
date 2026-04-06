@@ -9,5 +9,5 @@ RUN npm run build
 # Stage 2: Serve
 FROM caddy:alpine
 COPY --from=builder /app/dist /srv
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY docker/Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80

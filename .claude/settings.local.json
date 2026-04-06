@@ -6,7 +6,8 @@
       "Bash(git commit -m 'Initial commit: add design document:*)",
       "Bash(npm --version)",
       "Bash(npx vitest:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
