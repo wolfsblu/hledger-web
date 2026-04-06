@@ -84,7 +84,7 @@ export default function Transactions() {
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="truncate" title={txn.description}>{txn.description}</span>
           {txn.comment && (
-            <MessageSquare size={12} className="shrink-0 text-[var(--color-text-tertiary)]" title={txn.comment} />
+            <span title={txn.comment}><MessageSquare size={12} className="shrink-0 text-[var(--color-text-tertiary)]" /></span>
           )}
         </div>
       ),
