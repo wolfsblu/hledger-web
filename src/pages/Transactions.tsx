@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Plus, Upload } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Plus, Upload, MessageSquare } from "lucide-react";
 import { useTransactions } from "../api/hooks";
 import { useDateRange } from "../context/DateRangeContext";
 import { formatMixedAmount } from "../lib/format";

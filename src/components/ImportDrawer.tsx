@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { useImportCsv, useBulkCreateTransactions, useAccounts, useCommodities, useImportRules } from "../api/hooks";
 import type { components } from "../api/v1";
-import { formatMixedAmount } from "../lib/format";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Transaction = components["schemas"]["Transaction"];
@@ -13,21 +12,6 @@ type CreateTransactionRequest = components["schemas"]["CreateTransactionRequest"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function txnToCreateRequest(txn: Transaction): CreateTransactionRequest {
-  return {
-    date: txn.date,
-    ...(txn.date2 ? { date2: txn.date2 } : {}),
-    description: txn.description,
-    status: txn.status,
-    ...(txn.code ? { code: txn.code } : {}),
-    ...(txn.comment ? { comment: txn.comment } : {}),
-    postings: txn.postings.map(p => ({
-      account: p.account,
-      amount: p.amount,
-      status: p.status,
-    })),
-  };
-}
 
 function isModified(original: Transaction, current: EditableTxn): boolean {
   if (original.date !== current.date) return true;
@@ -427,7 +411,7 @@ export default function ImportDrawer({ open, onClose }: ImportDrawerProps) {
     setError(null);
     const toImport = editables.filter(e => !e.skipped);
     try {
-      const anyModified = toImport.some((e, i) => {
+      const anyModified = toImport.some((e, _i) => {
         const origIdx = editables.indexOf(e);
         return isModified(originalTxns[origIdx], e);
       });
