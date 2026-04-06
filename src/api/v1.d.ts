@@ -320,6 +320,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transactions/import/{rules}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    rules: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file?: string;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json;charset=utf-8": components["schemas"]["ImportResponse"];
+                    };
+                };
+                /** @description `rules` not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/balance-sheet": {
         parameters: {
             query?: never;
@@ -683,6 +733,11 @@ export interface components {
             account: string;
             amount?: components["schemas"]["MixedAmount"];
             status?: components["schemas"]["Status"];
+        };
+        ImportResponse: {
+            imported: number;
+            skipped: number;
+            transactions: components["schemas"]["Transaction"][];
         };
         BalanceSheetReport: {
             assets?: components["schemas"]["ReportSection"];
