@@ -13,6 +13,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Tag } from "lucide-react";
 import { useAccountDetail, useAccountRegister, useAccountBalance } from "../api/hooks";
 import { useDateRange } from "../context/DateRangeContext";
 import { formatMixedAmount } from "../lib/format";
+import { MobileRegisterList } from "../components/MobileRegisterList";
 
 const PAGE_SIZE = 50;
 
@@ -123,8 +124,13 @@ export default function AccountDetail() {
         </div>
       )}
 
-      {/* Register */}
-      <div className="overflow-hidden rounded-xl border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-1)]">
+      {/* Register — mobile */}
+      <div className="overflow-hidden rounded-xl border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-1)] md:hidden">
+        <MobileRegisterList entries={entries} isLoading={register.isLoading} />
+      </div>
+
+      {/* Register — desktop */}
+      <div className="hidden overflow-hidden rounded-xl border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-1)] md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--color-surface-border)]">
@@ -180,31 +186,32 @@ export default function AccountDetail() {
           </tbody>
         </table>
 
-        {/* Pagination */}
-        {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t border-[var(--color-surface-border)] px-5 py-3">
-            <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
-              {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total}
-            </span>
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-                disabled={offset === 0}
-                className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-surface-border)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-30"
-              >
-                <ChevronLeft size={12} /> Prev
-              </button>
-              <button
-                onClick={() => setOffset(offset + PAGE_SIZE)}
-                disabled={offset + PAGE_SIZE >= total}
-                className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-surface-border)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-30"
-              >
-                Next <ChevronRight size={12} />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Pagination */}
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between rounded-xl border border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-1)] px-5 py-3">
+          <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
+            {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total}
+          </span>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              disabled={offset === 0}
+              className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-surface-border)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-30"
+            >
+              <ChevronLeft size={12} /> Prev
+            </button>
+            <button
+              onClick={() => setOffset(offset + PAGE_SIZE)}
+              disabled={offset + PAGE_SIZE >= total}
+              className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-surface-border)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-30"
+            >
+              Next <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
