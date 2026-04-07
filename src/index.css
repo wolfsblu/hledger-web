@@ -198,6 +198,48 @@ body::before {
 .amount-positive { color: var(--color-gain); }
 .amount-negative { color: var(--color-loss); }
 
+/* Amount privacy toggle */
+.amount {
+  position: relative;
+  transition: color 0.4s ease, text-shadow 0.4s ease;
+}
+.amount::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 8px;
+  transform: translateY(-50%);
+  background-color: var(--color-text-tertiary);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='8' fill='none'%3E%3Cpath d='M0,4C3,1 6,7 10,3 14,0 16,6 21,5 27,8 27,1 32,4 37,7 39,2 43,3 47,5 49,7 53,5 57,2 60,1 64,4' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: repeat-x;
+  -webkit-mask-size: 64px 8px;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='8' fill='none'%3E%3Cpath d='M0,4C3,1 6,7 10,3 14,0 16,6 21,5 27,8 27,1 32,4 37,7 39,2 43,3 47,5 49,7 53,5 57,2 60,1 64,4' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-repeat: repeat-x;
+  mask-size: 64px 8px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.hide-amounts .amount {
+  color: transparent !important;
+  text-shadow: 0 0 8px var(--color-text-tertiary);
+  user-select: none;
+  pointer-events: none;
+}
+.hide-amounts .amount::after {
+  opacity: 1;
+}
+
+/* Charts & SVG containers when amounts hidden */
+.hide-amounts .amount-chart {
+  filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+  transition: filter 0.4s ease;
+}
+
 /* Recharts tooltip override */
 .recharts-default-tooltip {
   background: var(--color-surface-2) !important;

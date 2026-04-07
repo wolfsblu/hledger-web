@@ -109,7 +109,7 @@ export default function Transactions() {
         const p = txn.postings?.[0];
         const qty = p?.amount?.[0]?.quantity ?? 0;
         return p ? (
-          <span className={qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}>
+          <span className={`amount ${qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
             {formatMixedAmount(p.amount)}
           </span>
         ) : null;

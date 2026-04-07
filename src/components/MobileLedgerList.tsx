@@ -66,7 +66,7 @@ function MobileLedgerRow({ txn }: { txn: any }) {
             </span>
             {p && (
               <span
-                className={`shrink-0 font-mono text-[13px] font-semibold tabular-nums ${
+                className={`amount shrink-0 font-mono text-[13px] font-semibold tabular-nums ${
                   isPositive ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"
                 }`}
               >
@@ -135,7 +135,7 @@ export function TransactionDetail({ txn }: { txn: any }) {
                 <span className="break-words">{p.account.replace(/:/g, ":\u200B")}</span>
               </div>
               <div className={`flex items-center justify-end px-4 py-2.5 font-mono text-xs font-semibold tabular-nums ${pQty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"} ${rowBorder}`}>
-                {formatMixedAmount(p.amount)}
+                <span className="amount">{formatMixedAmount(p.amount)}</span>
               </div>
               <div className={`flex items-center justify-end py-2.5 pl-2 pr-4 ${rowBorder}`}>
                 {p.status && p.status !== "unmarked" ? (

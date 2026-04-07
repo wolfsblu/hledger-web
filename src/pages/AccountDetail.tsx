@@ -62,7 +62,7 @@ export default function AccountDetail() {
               </span>
             )}
             <span className="text-sm text-[var(--color-text-tertiary)]">
-              <span className="font-mono font-semibold text-[var(--color-text-primary)]">
+              <span className="amount font-mono font-semibold text-[var(--color-text-primary)]">
                 {formatMixedAmount(detail.data.balance ?? [])}
               </span>
             </span>
@@ -76,7 +76,7 @@ export default function AccountDetail() {
           <h3 className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
             Balance Over Time
           </h3>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={220} className="amount-chart">
             <LineChart data={balanceChartData}>
               <defs>
                 <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
@@ -174,10 +174,10 @@ export default function AccountDetail() {
                       <span className="block truncate">{(entry.otherAccounts ?? []).join(", ")}</span>
                     </td>
                     <td className={`whitespace-nowrap px-5 py-3 text-right font-mono text-xs font-medium ${qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
-                      {formatMixedAmount(entry.amount ?? [])}
+                      <span className="amount">{formatMixedAmount(entry.amount ?? [])}</span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right font-mono text-xs text-[var(--color-text-secondary)]">
-                      {formatMixedAmount(entry.balance ?? [])}
+                      <span className="amount">{formatMixedAmount(entry.balance ?? [])}</span>
                     </td>
                   </tr>
                 );

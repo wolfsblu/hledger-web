@@ -94,7 +94,7 @@ function AccountSection({ account }: { account: any }) {
           </div>
         </td>
         <td className="px-5 py-3 text-right font-mono text-sm font-semibold text-[var(--color-text-primary)]">
-          {formatMixedAmount(account.balance)}
+          <span className="amount">{formatMixedAmount(account.balance)}</span>
         </td>
       </tr>
 
@@ -151,7 +151,7 @@ function AccountChildRow({ child, qty, depth, nested }: { child: any; qty: numbe
                   ? "text-[var(--color-text-secondary)]"
                   : "text-[var(--color-loss)]"
         }`}>
-          {formatMixedAmount(child.balance)}
+          <span className="amount">{formatMixedAmount(child.balance)}</span>
         </td>
       </tr>
       {expanded && nested.length > 0 && <AccountChildren nodes={nested} depth={depth + 1} />}

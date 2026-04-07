@@ -65,7 +65,7 @@ function MobileRegisterRow({ entry }: { entry: any }) {
               {entry.description}
             </span>
             <span
-              className={`shrink-0 font-mono text-[13px] font-semibold tabular-nums ${
+              className={`amount shrink-0 font-mono text-[13px] font-semibold tabular-nums ${
                 isPositive ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"
               }`}
             >
@@ -128,7 +128,7 @@ function RegisterDetail({ entry }: { entry: any }) {
       {/* Balance footer */}
       <div className="flex items-center justify-between border-t border-[var(--color-surface-border-subtle)] bg-[var(--color-surface-2)]/30 px-4 py-2.5">
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">Balance</span>
-        <span className={`font-mono text-xs font-semibold tabular-nums ${isBalPositive ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
+        <span className={`amount font-mono text-xs font-semibold tabular-nums ${isBalPositive ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
           {formatMixedAmount(entry.balance ?? [])}
         </span>
       </div>

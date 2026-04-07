@@ -90,7 +90,7 @@ export default function Dashboard() {
             return (
               <div>
                 <div className={`font-mono text-4xl font-semibold tracking-tight ${isZero ? "text-[var(--color-text-tertiary)]" : isNegative ? "text-[var(--color-loss)]" : "text-[var(--color-text-primary)]"}`}>
-                  {formatMixedAmount(nw)}
+                  <span className="amount">{formatMixedAmount(nw)}</span>
                 </div>
               </div>
             );
@@ -102,12 +102,9 @@ export default function Dashboard() {
           {balanceSheet.isLoading ? (
             <Shimmer className="h-12 w-40" />
           ) : balanceSheet.data ? (
-            <div className="flex items-end gap-2">
-              <span className="font-mono text-3xl font-semibold tracking-tight text-[var(--color-gain)]">
-                {formatMixedAmount(balanceSheet.data.assets?.total ?? [])}
-              </span>
-              <TrendingUp size={20} className="mb-1 text-[var(--color-gain)]" />
-            </div>
+            <span className="amount font-mono text-3xl font-semibold tracking-tight text-[var(--color-gain)]">
+              {formatMixedAmount(balanceSheet.data.assets?.total ?? [])}
+            </span>
           ) : null}
         </StatCard>
 
@@ -119,12 +116,9 @@ export default function Dashboard() {
             const total = balanceSheet.data.liabilities?.total ?? [];
             const isZero = total.length === 0 || total.every((a: any) => a.quantity === 0);
             return (
-              <div className="flex items-end gap-2">
-                <span className={`font-mono text-3xl font-semibold tracking-tight ${isZero ? "text-[var(--color-text-tertiary)]" : "text-[var(--color-loss)]"}`}>
-                  {formatMixedAmount(total)}
-                </span>
-                {!isZero && <TrendingDown size={20} className="mb-1 text-[var(--color-loss)]" />}
-              </div>
+              <span className={`amount font-mono text-3xl font-semibold tracking-tight ${isZero ? "text-[var(--color-text-tertiary)]" : "text-[var(--color-loss)]"}`}>
+                {formatMixedAmount(total)}
+              </span>
             );
           })() : null}
         </StatCard>
@@ -264,19 +258,19 @@ function IncomeVsExpenses({ data }: { data: any }) {
         <div>
           <div className="text-xs text-[var(--color-text-tertiary)]">Income</div>
           <div className="mt-1 font-mono text-sm font-semibold text-[var(--color-gain)]">
-            {income > 0 ? fmt(income) : "—"}
+            <span className="amount">{income > 0 ? fmt(income) : "—"}</span>
           </div>
         </div>
         <div className="text-center">
           <div className="text-xs text-[var(--color-text-tertiary)]">Net</div>
           <div className={`mt-1 font-mono text-sm font-semibold ${net >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
-            {hasData ? `${net >= 0 ? "+" : ""}${fmt(net)}` : "—"}
+            <span className="amount">{hasData ? `${net >= 0 ? "+" : ""}${fmt(net)}` : "—"}</span>
           </div>
         </div>
         <div className="text-right">
           <div className="text-xs text-[var(--color-text-tertiary)]">Expenses</div>
           <div className="mt-1 font-mono text-sm font-semibold text-[var(--color-loss)]">
-            {expenses > 0 ? fmt(expenses) : "—"}
+            <span className="amount">{expenses > 0 ? fmt(expenses) : "—"}</span>
           </div>
         </div>
       </div>
@@ -321,7 +315,7 @@ function SpendingByCategory({ rows }: { rows: any[] }) {
             <span className="text-[var(--color-text-secondary)] transition-colors group-hover:text-[var(--color-text-primary)]">
               {exp.name}
             </span>
-            <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
+            <span className="amount font-mono text-xs text-[var(--color-text-tertiary)]">
               {formatAmount({ commodity: exp.commodity, quantity: exp.amount })}
             </span>
           </div>
@@ -377,7 +371,7 @@ function IncomeBySource({ rows }: { rows: any[] }) {
             <span className="text-[var(--color-text-secondary)] transition-colors group-hover:text-[var(--color-text-primary)]">
               {src.name}
             </span>
-            <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
+            <span className="amount font-mono text-xs text-[var(--color-text-tertiary)]">
               {formatAmount({ commodity: src.commodity, quantity: src.amount })}
             </span>
           </div>
@@ -433,7 +427,7 @@ const recentTxnColumns: ColumnDef<any>[] = [
       const p = txn.postings?.[0];
       const qty = p?.amount?.[0]?.quantity ?? 0;
       return p ? (
-        <span className={qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}>
+        <span className={`amount ${qty >= 0 ? "text-[var(--color-gain)]" : "text-[var(--color-loss)]"}`}>
           {formatMixedAmount(p.amount)}
         </span>
       ) : null;
@@ -619,7 +613,7 @@ function SpendingCalendar({
         <>
           {/* SVG grid — fixed pixel size, scrolls horizontally on small screens */}
           <svg
-            className="spending-calendar block"
+            className="spending-calendar amount-chart block"
             viewBox={`0 0 ${svgW} ${svgH}`}
             width="100%"
             style={{ minWidth: svgW }}
@@ -825,7 +819,7 @@ function NetWorthChart({
                   style={{ color: posColor, borderColor: posColor }}
                 >
                   {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                  {isUp ? "+" : ""}{formatAmount({ commodity: c, quantity: absDelta })}
+                  <span className="amount">{isUp ? "+" : ""}{formatAmount({ commodity: c, quantity: absDelta })}</span>
                 </button>
               );
             })}
@@ -840,7 +834,7 @@ function NetWorthChart({
           No data for this period.
         </p>
       ) : (
-        <div style={{ minHeight: 200 }}>
+        <div className="amount-chart" style={{ minHeight: 200 }}>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>

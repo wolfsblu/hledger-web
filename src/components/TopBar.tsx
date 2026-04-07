@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import DateRangePicker from "./DateRangePicker";
+import AmountVisibilityToggle from "./AmountVisibilityToggle";
 import DarkModeToggle from "./DarkModeToggle";
 
 interface TopBarProps {
@@ -20,6 +21,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
       <div className="flex items-center gap-3">
         <DateRangePicker />
         <div className="h-5 w-px bg-[var(--color-surface-border)]" />
+        <AmountVisibilityToggle />
         <DarkModeToggle />
       </div>
     </header>
