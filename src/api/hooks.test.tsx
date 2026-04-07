@@ -33,7 +33,7 @@ describe("useAccounts", () => {
 
   it("fetches accounts list", async () => {
     mockedClient.GET.mockResolvedValueOnce({
-      data: [{ name: "assets", fullName: "assets", balance: [{ commodity: "$", quantity: 1000 }], subAccounts: 1, depth: 1 }],
+      data: [{ name: "assets", fullName: "assets", balance: [{ commodity: "$", quantity: 1000 }], children: [] }],
       error: undefined,
       response: {} as Response,
     });
