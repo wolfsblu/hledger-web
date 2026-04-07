@@ -1,6 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Plus, Trash2, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import { useAccounts, useCommodities, useCreateTransaction } from "../api/hooks";
+import type { components } from "../api/v1";
+
+type AccountTree = components["schemas"]["AccountTree"];
+
+function flattenAccounts(trees: AccountTree[]): string[] {
+  const result: string[] = [];
+  function walk(nodes: AccountTree[]) {
+    for (const node of nodes) {
+      result.push(node.fullName);
+      if (node.children?.length) walk(node.children);
+    }
+  }
+  walk(trees);
+  return result;
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,24 +52,32 @@ function initForm(defaultCommodity: string): FormDraft {
   };
 }
 
-// ── Combobox ─────────────────────────────────────────────────────────────────
+// ── Account Combobox (API-driven search) ─────────────────────────────────────
 
-interface ComboboxProps {
+interface AccountComboboxProps {
   value: string;
   onChange: (v: string) => void;
-  options: string[];
   placeholder?: string;
 }
 
-function Combobox({ value, onChange, options, placeholder }: ComboboxProps) {
+function AccountCombobox({ value, onChange, placeholder }: AccountComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
 
-  const filtered = query.length > 0
-    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase())).slice(0, 10)
-    : options.slice(0, 10);
+  // Debounce the search query
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const { data: accountTree } = useAccounts({
+    search: debouncedQuery || undefined,
+  });
+
+  const options = accountTree ? flattenAccounts(accountTree).slice(0, 10) : [];
 
   useEffect(() => { setQuery(value); }, [value]);
 
@@ -74,9 +97,9 @@ function Combobox({ value, onChange, options, placeholder }: ComboboxProps) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filtered.length - 1)); }
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, options.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (activeIdx >= 0 && filtered[activeIdx]) select(filtered[activeIdx]); }
+    else if (e.key === "Enter") { e.preventDefault(); if (activeIdx >= 0 && options[activeIdx]) select(options[activeIdx]); }
     else if (e.key === "Escape") setOpen(false);
   }
 
@@ -91,9 +114,9 @@ function Combobox({ value, onChange, options, placeholder }: ComboboxProps) {
         onKeyDown={handleKeyDown}
         className="w-full rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-2)] px-3 py-2 font-body text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] transition-colors focus:border-[var(--color-accent-dim)] focus:outline-none"
       />
-      {open && filtered.length > 0 && (
+      {open && options.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-1)] shadow-xl">
-          {filtered.map((opt, i) => (
+          {options.map((opt, i) => (
             <button
               key={opt}
               type="button"
@@ -116,9 +139,9 @@ function Combobox({ value, onChange, options, placeholder }: ComboboxProps) {
 // ── Status Picker ─────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
-  { value: "unmarked" as const, label: "Unmarked" },
-  { value: "pending" as const, label: "Pending", icon: AlertCircle },
-  { value: "cleared" as const, label: "Cleared", icon: Check },
+  { value: "unmarked" as const, label: "Unmarked", activeClass: "text-[var(--color-text-primary)]" },
+  { value: "pending" as const, label: "Pending", icon: AlertCircle, activeClass: "text-[var(--color-accent)]" },
+  { value: "cleared" as const, label: "Cleared", icon: Check, activeClass: "text-[var(--color-gain)]" },
 ];
 
 function StatusPicker({
@@ -139,7 +162,7 @@ function StatusPicker({
             onClick={() => onChange(opt.value)}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all ${
               active
-                ? "bg-[var(--color-surface-1)] text-[var(--color-text-primary)] shadow-sm"
+                ? `bg-[var(--color-surface-1)] ${opt.activeClass} shadow-sm`
                 : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
             }`}
           >
@@ -160,11 +183,9 @@ interface NewTransactionDrawerProps {
 }
 
 export default function NewTransactionDrawer({ open, onClose }: NewTransactionDrawerProps) {
-  const { data: accounts } = useAccounts({});
   const { data: commodities } = useCommodities();
   const createTxn = useCreateTransaction();
 
-  const accountNames = accounts?.map(a => a.fullName) ?? [];
   const defaultCommodity = commodities?.[0]?.symbol ?? "";
 
 
@@ -355,10 +376,9 @@ export default function NewTransactionDrawer({ open, onClose }: NewTransactionDr
                     </div>
 
                     <div className="space-y-2">
-                      <Combobox
+                      <AccountCombobox
                         value={posting.account}
                         onChange={v => updatePosting(posting.id, { account: v })}
-                        options={accountNames}
                         placeholder="assets:checking"
                       />
                       <div className="flex gap-2">

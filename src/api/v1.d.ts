@@ -16,6 +16,7 @@ export interface paths {
                 query?: {
                     depth?: number;
                     type?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -28,10 +29,10 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json;charset=utf-8": components["schemas"]["AccountInfo"][];
+                        "application/json;charset=utf-8": components["schemas"]["AccountTree"][];
                     };
                 };
-                /** @description Invalid `type` or `depth` */
+                /** @description Invalid `search` or `type` or `depth` */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -211,8 +212,13 @@ export interface paths {
                 query?: {
                     from?: string;
                     to?: string;
-                    account?: string;
+                    account?: string[];
                     description?: string;
+                    status?: string[];
+                    tag?: string[];
+                    minAmount?: number;
+                    maxAmount?: number;
+                    sort?: string;
                     limit?: number;
                     offset?: number;
                 };
@@ -230,7 +236,7 @@ export interface paths {
                         "application/json;charset=utf-8": components["schemas"]["PaginatedResponse"];
                     };
                 };
-                /** @description Invalid `offset` or `limit` or `description` or `account` or `to` or `from` */
+                /** @description Invalid `offset` or `limit` or `sort` or `maxAmount` or `minAmount` or `tag` or `status` or `description` or `account` or `to` or `from` */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -591,6 +597,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/net-worth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    interval?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json;charset=utf-8": components["schemas"]["NetWorthReport"];
+                    };
+                };
+                /** @description Invalid `interval` or `to` or `from` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -731,12 +782,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AccountInfo: {
+        AccountTree: {
             balance: components["schemas"]["MixedAmount"];
-            depth: number;
+            children: components["schemas"]["AccountTree"][];
             fullName: string;
             name: string;
-            subAccounts: number;
             type?: string;
         };
         /** @description A multi-currency amount (list of amounts) */
@@ -863,6 +913,19 @@ export interface components {
             operating?: components["schemas"]["ReportSection"];
             /** Format: date */
             to?: string;
+        };
+        NetWorthReport: {
+            dataPoints?: components["schemas"]["NetWorthDataPoint"][];
+            /** Format: date */
+            from?: string;
+            interval?: string;
+            /** Format: date */
+            to?: string;
+        };
+        NetWorthDataPoint: {
+            /** Format: date */
+            date?: string;
+            netWorth?: components["schemas"]["MixedAmount"];
         };
         VersionInfo: {
             api: string;

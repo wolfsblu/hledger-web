@@ -7,7 +7,9 @@
       "Bash(npm --version)",
       "Bash(npx vitest:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git log:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

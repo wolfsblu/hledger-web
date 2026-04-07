@@ -74,7 +74,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Footer */}
       <div className="border-t border-[var(--color-surface-border-subtle)] px-5 py-4">
         <div className="font-mono text-[10px] text-[var(--color-text-tertiary)]">
-          Plaintext Accounting
+          <a href="https://plaintextaccounting.org/" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--color-text-secondary)] transition-colors">Plaintext Accounting</a>
         </div>
       </div>
     </aside>

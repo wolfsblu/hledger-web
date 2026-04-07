@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { components } from "./v1";
 import client from "./client";
 
-export function useAccounts(params: { depth?: number; type?: string }) {
+export function useAccounts(params: { depth?: number; type?: string; search?: string }) {
   return useQuery({
     queryKey: ["accounts", params],
     queryFn: async () => {
@@ -63,8 +63,13 @@ export function useAccountRegister(
 export function useTransactions(params: {
   from?: string;
   to?: string;
-  account?: string;
+  account?: string[];
   description?: string;
+  status?: string[];
+  tag?: string[];
+  minAmount?: number;
+  maxAmount?: number;
+  sort?: string;
   limit?: number;
   offset?: number;
 }) {
@@ -96,6 +101,17 @@ export function useCommodities() {
     queryKey: ["commodities"],
     queryFn: async () => {
       const { data, error } = await client.GET("/api/v1/commodities", {});
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useTags() {
+  return useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/api/v1/tags", {});
       if (error) throw error;
       return data;
     },

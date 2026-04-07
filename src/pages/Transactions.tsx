@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, Check, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Plus, Upload, MessageSquare } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import type { components } from "../api/v1";
+import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Plus, Upload, MessageSquare } from "lucide-react";
 import { useTransactions } from "../api/hooks";
 import { useDateRange } from "../context/DateRangeContext";
 import { formatMixedAmount } from "../lib/format";
@@ -7,45 +8,46 @@ import { LedgerGrid, type ColumnDef } from "../components/LedgerGrid";
 import { MobileLedgerList, TransactionDetail } from "../components/MobileLedgerList";
 import NewTransactionDrawer from "../components/NewTransactionDrawer";
 import ImportDrawer from "../components/ImportDrawer";
+import TransactionFilterPanel from "../components/TransactionFilterPanel";
+import { useTransactionFilters } from "../hooks/useTransactionFilters";
 
 const PAGE_SIZE = 50;
 
 export default function Transactions() {
   const { range } = useDateRange();
-  const [searchFilter, setSearchFilter] = useState("");
   const [offset, setOffset] = useState(0);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
-  useMemo(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchFilter);
-      setOffset(0);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchFilter]);
+  const filters = useTransactionFilters(
+    useCallback(() => setOffset(0), []),
+  );
 
   const { data, isLoading } = useTransactions({
     from: range.from,
     to: range.to,
-    account: debouncedSearch || undefined,
-    description: debouncedSearch || undefined,
+    account: filters.accountParam,
+    description: filters.debouncedDescription || undefined,
+    status: filters.statusParam,
+    tag: filters.tagParam,
+    minAmount: filters.debouncedMinAmount,
+    maxAmount: filters.debouncedMaxAmount,
     limit: PAGE_SIZE,
     offset,
   });
 
-  const allTxns = data?.data?.flat() ?? [];
   const transactions = useMemo(() => {
+    const allTxns = data?.data?.flat() ?? [];
     return [...allTxns].sort((a, b) => {
       const cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [allTxns, sortDir]);
+  }, [data, sortDir]);
   const total = data?.total ?? 0;
 
-  const columns: ColumnDef<any>[] = [
+  type Transaction = components["schemas"]["Transaction"];
+  const columns: ColumnDef<Transaction>[] = [
     {
       id: "status",
       header: "Status",
@@ -145,15 +147,9 @@ export default function Transactions() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
-        <input
-          type="text"
-          placeholder="Search by account or description..."
-          value={searchFilter}
-          onChange={(e) => setSearchFilter(e.target.value)}
-          className="w-full rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-2)] py-2 pl-9 pr-3 font-body text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] transition-colors focus:border-[var(--color-accent-dim)] focus:outline-none"
-        />
+      {/* Filters */}
+      <div className="relative z-10">
+        <TransactionFilterPanel filters={filters} />
       </div>
 
       {/* Desktop */}
