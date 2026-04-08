@@ -1,6 +1,8 @@
 import { NavLink } from "react-router";
 import { LayoutDashboard, Wallet, ArrowLeftRight, BookOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import AmountVisibilityToggle from "./AmountVisibilityToggle";
+import DarkModeToggle from "./DarkModeToggle";
 
 const links: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -73,7 +75,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Footer */}
       <div className="border-t border-[var(--color-surface-border-subtle)] px-5 py-4">
-        <div className="font-mono text-[10px] text-[var(--color-text-tertiary)]">
+        <AmountVisibilityToggle />
+        <DarkModeToggle />
+        <div className="mt-3 text-center font-mono text-[10px] text-[var(--color-text-tertiary)]">
           <a href="https://plaintextaccounting.org/" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--color-text-secondary)] transition-colors">Plaintext Accounting</a>
         </div>
       </div>
